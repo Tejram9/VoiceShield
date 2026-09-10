@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { AnalysisWebSocketClient } from "../lib/websocket/analysis-socket";
 import type { AudioChunkMessage } from "../types/websocket";
 import { EventType, RiskLevel, SecurityEvent } from "../lib/api/types";
