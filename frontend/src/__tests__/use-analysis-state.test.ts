@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { analysisReducer, INITIAL_ANALYSIS_STATE } from "@/hooks/use-analysis-state";
-import type { SecurityEvent } from "@/lib/api/types";
-import { EventType } from "@/lib/api/types";
+import { analysisReducer, INITIAL_ANALYSIS_STATE } from "../hooks/use-analysis-state";
+import type { SecurityEvent } from "../lib/api/types";
+import { EventType } from "../lib/api/types";
 
 // ---------------------------------------------------------------------------
 // Test helpers

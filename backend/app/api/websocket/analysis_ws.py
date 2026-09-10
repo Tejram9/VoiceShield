@@ -12,7 +12,6 @@ from app.schemas.audio import AudioChunkMessage, AudioSegment, AudioFormat
 from app.schemas.events import EventType, SecurityEvent
 from app.schemas.risk import RiskLevel
 from app.services.session_manager import session_manager
-from app.services.analysis_orchestrator import orchestrator
 
 router = APIRouter()
 
@@ -241,6 +240,7 @@ async def session_websocket_endpoint(websocket: WebSocket, session_id: str):
             )
 
             try:
+                from app.services.analysis_orchestrator import orchestrator
                 await orchestrator.analyze_audio_segment(
                     session_id=session_id,
                     audio_segment=segment
