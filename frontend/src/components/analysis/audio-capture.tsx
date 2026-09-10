@@ -33,17 +33,18 @@ export function AudioCapture({
   onStop,
   disabled = false,
 }: AudioCaptureProps) {
-  const isActive   = micState === "ACTIVE";
-  const isRequesting = micState === "REQUESTING";
-  const isError    = micState === "ERROR" || micState === "UNSUPPORTED";
-  const isIdle     = micState === "IDLE";
+  const isActive   = micState === "CAPTURING";
+  const isRequesting = micState === "MICROPHONE_INITIALIZING";
+  const isStopping = micState === "STOPPING";
+  const isError    = micState === "ERROR" || micState === "UNSUPPORTED" || micState === "MICROPHONE_PERMISSION_REQUIRED";
+  const isIdle     = micState === "IDLE" || micState === "STOPPED";
 
   const levelBars  = Math.round(micStats.level * 12);
 
   const handleToggle = async () => {
     if (isActive) {
       onStop();
-    } else if (!isRequesting && !disabled) {
+    } else if (!isRequesting && !isStopping && !disabled) {
       await onStart();
     }
   };
@@ -55,7 +56,7 @@ export function AudioCapture({
         <button
           id="audio-capture-toggle"
           onClick={handleToggle}
-          disabled={isRequesting || disabled}
+          disabled={isRequesting || isStopping || disabled}
           aria-label={isActive ? "Stop microphone capture" : "Start microphone capture"}
           className={[
             "flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded border transition-colors",
@@ -63,6 +64,8 @@ export function AudioCapture({
               ? "bg-rose-600 hover:bg-rose-500 border-rose-500/40 text-white"
               : isRequesting
               ? "bg-amber-600/50 border-amber-500/30 text-amber-200 cursor-wait"
+              : isStopping
+              ? "bg-slate-700 border-slate-600 text-slate-300 cursor-wait"
               : isError
               ? "bg-rose-900/60 border-rose-600/30 text-rose-300 cursor-not-allowed"
               : disabled
@@ -79,6 +82,11 @@ export function AudioCapture({
             <>
               <Loader2 className="w-3 h-3 animate-spin" />
               <span>REQUESTING...</span>
+            </>
+          ) : isStopping ? (
+            <>
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>STOPPING...</span>
             </>
           ) : isError ? (
             <>
@@ -97,7 +105,7 @@ export function AudioCapture({
         {isActive && (
           <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-400">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span>LIVE · {micStats.windowsDispatched} segments sent</span>
+            <span>CAPTURING · {micStats.windowsDispatched} segments sent</span>
           </div>
         )}
       </div>
@@ -137,7 +145,9 @@ export function AudioCapture({
           <span className="text-[11px] font-mono text-rose-300">
             {micState === "UNSUPPORTED"
               ? "Browser microphone API not supported."
-              : "Microphone access denied. Check browser permissions, then use manual analysis."}
+              : micState === "MICROPHONE_PERMISSION_REQUIRED"
+              ? "Microphone access denied. Check browser permissions, then try again."
+              : "Microphone error. Check connection or try manual analysis."}
           </span>
         </div>
       )}

@@ -124,7 +124,7 @@ export const INITIAL_ANALYSIS_STATE: AnalysisState = {
 // Action types
 // ---------------------------------------------------------------------------
 
-type AnalysisAction =
+export type AnalysisAction =
   | { type: "EVENT_RECEIVED"; event: SecurityEvent }
   | { type: "RESET" }
   | { type: "SET_RISK_ASSESSMENT"; assessment: RiskAssessment };
@@ -133,7 +133,7 @@ type AnalysisAction =
 // Reducer — all event-to-state mapping lives here
 // ---------------------------------------------------------------------------
 
-function analysisReducer(state: AnalysisState, action: AnalysisAction): AnalysisState {
+export function analysisReducer(state: AnalysisState, action: AnalysisAction): AnalysisState {
   switch (action.type) {
     case "RESET":
       return { ...INITIAL_ANALYSIS_STATE };

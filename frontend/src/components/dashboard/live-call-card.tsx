@@ -54,7 +54,7 @@ export function LiveCallCard({
   analysisStatus = "IDLE",
   transcript = "",
   micState = "IDLE",
-  micStats = { level: 0, totalSamples: 0, windowsDispatched: 0 },
+  micStats = { level: 0, totalSamples: 0, windowsDispatched: 0, secondsBuffered: 0 },
   isInitializing = false,
   sessionError = null,
   onTriggerAnalysis,
@@ -65,9 +65,10 @@ export function LiveCallCard({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const riskStyles = getRiskColorClasses(call.riskLevel);
 
-  const isMicActive = micState === "ACTIVE";
-  const isMicRequesting = micState === "REQUESTING";
-  const isMicError = micState === "ERROR" || micState === "UNSUPPORTED";
+  const isMicActive = micState === "CAPTURING";
+  const isMicRequesting = micState === "MICROPHONE_INITIALIZING";
+  const isMicStopping = micState === "STOPPING";
+  const isMicError = micState === "ERROR" || micState === "UNSUPPORTED" || micState === "MICROPHONE_PERMISSION_REQUIRED";
   const isSessionReady = !!call.sessionId && call.sessionId !== "VS-2026-INIT" && !isInitializing;
 
   const handleRunAnalysis = async () => {
@@ -83,7 +84,7 @@ export function LiveCallCard({
   const handleMicToggle = async () => {
     if (isMicActive) {
       onStopMicrophone?.();
-    } else if (isSessionReady) {
+    } else if (!isMicRequesting && !isMicStopping && isSessionReady) {
       await onStartMicrophone?.();
     }
   };
@@ -152,7 +153,7 @@ export function LiveCallCard({
             <button
               id="mic-toggle-btn"
               onClick={handleMicToggle}
-              disabled={isMicRequesting || !isSessionReady}
+              disabled={isMicRequesting || isMicStopping || !isSessionReady}
               aria-label={isMicActive ? "Stop microphone capture" : "Start microphone capture"}
               className={[
                 "flex items-center space-x-1.5 px-3 py-1 font-mono text-xs font-bold rounded transition border shadow-sm",
@@ -160,6 +161,8 @@ export function LiveCallCard({
                   ? "bg-rose-600 hover:bg-rose-500 border-rose-400/30 text-white"
                   : isMicRequesting
                   ? "bg-amber-600/50 border-amber-400/30 text-amber-200 cursor-wait"
+                  : isMicStopping
+                  ? "bg-slate-700 border-slate-600 text-slate-300 cursor-wait"
                   : isMicError
                   ? "bg-rose-800/50 border-rose-600/30 text-rose-300 cursor-not-allowed"
                   : !isSessionReady
@@ -176,6 +179,11 @@ export function LiveCallCard({
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>Requesting...</span>
+                </>
+              ) : isMicStopping ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Stopping...</span>
                 </>
               ) : (
                 <>
@@ -229,10 +237,10 @@ export function LiveCallCard({
             <div className="flex items-center space-x-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[11px] font-mono font-bold text-emerald-300 uppercase tracking-wide">
-                LIVE MIC ACTIVE
+                CAPTURING AUDIO
               </span>
               <span className="text-[10px] font-mono text-emerald-500">
-                Auto-analysis every 1s · {micStats.windowsDispatched} windows sent
+                Streaming 4s window / 1s hop · {micStats.windowsDispatched} windows sent
               </span>
             </div>
             <div
@@ -267,7 +275,9 @@ export function LiveCallCard({
             <span className="text-[11px] font-mono text-rose-300">
               {micState === "UNSUPPORTED"
                 ? "Browser microphone API not supported. Use manual analysis."
-                : "Microphone access denied. Check browser permissions or use \"Run Analysis\" for manual testing."}
+                : micState === "MICROPHONE_PERMISSION_REQUIRED"
+                ? "Microphone access denied. Check browser permissions, then try again."
+                : "Microphone error. Check connection or try manual analysis."}
             </span>
           </div>
         )}

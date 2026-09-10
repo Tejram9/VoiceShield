@@ -41,6 +41,7 @@ export default function SecurityConsoleDashboard() {
     sessionError,
     connectionState,
     connectionError,
+    backpressureStats,
     analysisState,
     riskAssessment,
     transcript,
@@ -116,6 +117,8 @@ export default function SecurityConsoleDashboard() {
             isInitializing={isInitializing}
             pipelineLatencyMs={analysisState.pipelineLatency.totalMs}
             lastAnalyzedAt={analysisState.lastAnalyzedAt}
+            micState={micState}
+            backpressureState={backpressureStats?.status}
           />
 
           {/* ── LEVEL 1: Live Call Session Workspace ──────────────── */}

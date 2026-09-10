@@ -9,8 +9,9 @@
  */
 
 import React from "react";
-import type { ConnectionState } from "@/lib/websocket/analysis-socket";
+import type { ConnectionState, BackpressureState } from "@/lib/websocket/analysis-socket";
 import type { AnalysisStatus } from "@/types/analysis";
+import type { MicrophoneState } from "@/hooks/use-microphone";
 
 interface SessionStatusBarProps {
   sessionId: string | null;
@@ -19,24 +20,44 @@ interface SessionStatusBarProps {
   isInitializing: boolean;
   pipelineLatencyMs: number | null;
   lastAnalyzedAt: string | null;
+  micState?: MicrophoneState;
+  backpressureState?: BackpressureState;
 }
 
-/** Map the combined (connection + analysis) state to a human label. */
+/** Map the combined (connection + analysis + mic) state to a truthful human label. */
 function deriveOperationalLabel(
   sessionId: string | null,
   connectionState: ConnectionState,
   analysisStatus: AnalysisStatus,
-  isInitializing: boolean
+  isInitializing: boolean,
+  micState?: MicrophoneState,
+  backpressureState?: BackpressureState
 ): { label: string; color: "slate" | "amber" | "emerald" | "rose" | "blue" } {
   if (!sessionId || isInitializing) return { label: "INITIALIZING SESSION", color: "amber" };
-  if (connectionState === "CONNECTING")   return { label: "CONNECTING", color: "amber" };
-  if (connectionState === "RECONNECTING") return { label: "RECONNECTING", color: "amber" };
+  if (connectionState === "CONNECTING")   return { label: "CONNECTING WS", color: "amber" };
+  if (connectionState === "RECONNECTING") return { label: "RECONNECTING WS", color: "amber" };
   if (connectionState === "ERROR")        return { label: "CONNECTION FAILED", color: "rose" };
   if (connectionState === "DISCONNECTED") return { label: "DISCONNECTED", color: "rose" };
-  if (analysisStatus === "PROCESSING")    return { label: "ANALYZING", color: "blue" };
-  if (analysisStatus === "ERROR")         return { label: "ANALYSIS ERROR", color: "rose" };
-  if (analysisStatus === "COMPLETED")     return { label: "LIVE", color: "emerald" };
-  if (connectionState === "CONNECTED")    return { label: "CONNECTED · WAITING FOR AUDIO", color: "emerald" };
+
+  if (micState === "MICROPHONE_PERMISSION_REQUIRED") return { label: "MIC PERMISSION REQUIRED", color: "amber" };
+  if (micState === "MICROPHONE_INITIALIZING") return { label: "INITIALIZING MIC", color: "amber" };
+  if (micState === "STOPPING") return { label: "STOPPING MIC", color: "amber" };
+  if (micState === "ERROR") return { label: "MIC ERROR", color: "rose" };
+  if (micState === "UNSUPPORTED") return { label: "MIC UNSUPPORTED", color: "rose" };
+
+  if (backpressureState === "DEGRADED") return { label: "DEGRADED (BACKPRESSURE)", color: "amber" };
+
+  if (analysisStatus === "PROCESSING") {
+    return micState === "CAPTURING"
+      ? { label: "CAPTURING · ANALYZING", color: "blue" }
+      : { label: "ANALYZING", color: "blue" };
+  }
+  if (analysisStatus === "ERROR") return { label: "ANALYSIS ERROR", color: "rose" };
+
+  if (micState === "CAPTURING") return { label: "CAPTURING AUDIO", color: "emerald" };
+  if (analysisStatus === "COMPLETED") return { label: "ANALYSIS READY", color: "emerald" };
+  if (connectionState === "CONNECTED") return { label: "CONNECTED · READY", color: "slate" };
+
   return { label: "IDLE", color: "slate" };
 }
 
@@ -58,12 +79,16 @@ export function SessionStatusBar({
   isInitializing,
   pipelineLatencyMs,
   lastAnalyzedAt,
+  micState,
+  backpressureState,
 }: SessionStatusBarProps) {
   const { label, color } = deriveOperationalLabel(
     sessionId,
     connectionState,
     analysisStatus,
-    isInitializing
+    isInitializing,
+    micState,
+    backpressureState
   );
   const cls = COLOR_CLASSES[color];
 

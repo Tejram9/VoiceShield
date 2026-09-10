@@ -26,7 +26,7 @@ import { createSession, getSession, analyzeSegment } from "../lib/api/client";
 import {
   AnalysisWebSocketClient,
 } from "../lib/websocket/analysis-socket";
-import type { ConnectionState } from "../lib/websocket/analysis-socket";
+import type { ConnectionState, BackpressureStats } from "../lib/websocket/analysis-socket";
 import {
   useMicrophone,
 } from "./use-microphone";
@@ -49,6 +49,9 @@ export interface UseAnalysisSessionReturn {
   // Connection
   connectionState: ConnectionState;
   connectionError: string | null;
+
+  // Backpressure
+  backpressureStats: BackpressureStats;
 
   // All AI analysis state (typed per-signal)
   analysisState: AnalysisState;
@@ -77,9 +80,18 @@ export function useAnalysisSession(initialSessionId?: string): UseAnalysisSessio
 
   const [connectionState, setConnectionState] = useState<ConnectionState>("DISCONNECTED");
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [backpressureStats, setBackpressureStats] = useState<BackpressureStats>({
+    chunksProduced: 0,
+    chunksSent: 0,
+    chunksProcessed: 0,
+    chunksDropped: 0,
+    queueDepth: 0,
+    status: "NORMAL",
+  });
 
   // Stable ref for async callbacks (avoids stale closure)
   const sessionRef = useRef<AnalysisSession | null>(null);
+  const sequenceRef = useRef<number>(0);
 
   // Typed analysis state reducer — all event-to-state mapping lives here
   const { state: analysisState, processEvent, setRiskAssessment, reset: resetAnalysisState } =
@@ -119,9 +131,11 @@ export function useAnalysisSession(initialSessionId?: string): UseAnalysisSessio
     if (!ws) return;
     const unbindEvent = ws.onEvent(handleWebSocketEvent);
     const unbindState = ws.onStateChange(handleStateChange);
+    const unbindBackpressure = ws.onBackpressureChange(setBackpressureStats);
     return () => {
       unbindEvent();
       unbindState();
+      unbindBackpressure();
     };
   }, [handleWebSocketEvent, handleStateChange]);
 
@@ -132,12 +146,12 @@ export function useAnalysisSession(initialSessionId?: string): UseAnalysisSessio
     async (customSessionId?: string) => {
       setIsInitializing(true);
       setSessionError(null);
+      sequenceRef.current = 0;
       resetAnalysisState();
 
       try {
         const resp = await createSession({
           session_id: customSessionId || initialSessionId,
-          // Caller metadata — left as backend defaults (no hardcoded names)
         });
 
         const fetchedSession = await getSession(resp.session_id);
@@ -168,7 +182,7 @@ export function useAnalysisSession(initialSessionId?: string): UseAnalysisSessio
   );
 
   // ---------------------------------------------------------------------------
-  // Audio segment analysis trigger
+  // Audio segment analysis trigger (REST path)
   // ---------------------------------------------------------------------------
   const triggerAnalysis = useCallback(
     async (payload: AnalyzeSegmentRequest = {}) => {
@@ -187,7 +201,6 @@ export function useAnalysisSession(initialSessionId?: string): UseAnalysisSessio
         });
 
         // REST response gives the complete RiskAssessment with all signals
-        // WebSocket events give incremental updates — both are used
         setRiskAssessment(assessment);
       } catch (err: unknown) {
         const userMsg =
@@ -203,20 +216,39 @@ export function useAnalysisSession(initialSessionId?: string): UseAnalysisSessio
   );
 
   // ---------------------------------------------------------------------------
-  // Microphone → encode → analyze loop
+  // Microphone → encode → WebSocket streaming loop
   // ---------------------------------------------------------------------------
   const handleAudioWindow = useCallback(
     async (pcmFloat32: Float32Array, durationMs: number) => {
-      if (!sessionRef.current) return;
+      const currentSession = sessionRef.current;
+      if (!currentSession) return;
       if (!hasSignificantAudio(pcmFloat32)) return;
 
       const audioBase64 = float32ToBase64Pcm16(pcmFloat32);
-      await triggerAnalysis({
-        sample_rate: 16000,
-        duration_ms: durationMs,
-        format: "pcm_s16le",
-        audio_base64: audioBase64,
-      });
+      const seq = sequenceRef.current++;
+
+      const wsClient = socketClientRef.current;
+      if (wsClient && wsClient.getState() === "CONNECTED") {
+        // Stream via WebSocket transport envelope
+        wsClient.sendAudioChunk({
+          type: "audio_chunk",
+          session_id: currentSession.session_id,
+          sequence: seq,
+          sample_rate: 16000,
+          channels: 1,
+          format: "pcm_s16le",
+          duration_ms: durationMs,
+          audio_base64: audioBase64,
+        });
+      } else {
+        // Fallback to REST transport if WebSocket is connecting/reconnecting
+        await triggerAnalysis({
+          sample_rate: 16000,
+          duration_ms: durationMs,
+          format: "pcm_s16le",
+          audio_base64: audioBase64,
+        });
+      }
     },
     [triggerAnalysis]
   );
@@ -245,6 +277,7 @@ export function useAnalysisSession(initialSessionId?: string): UseAnalysisSessio
     socketClientRef.current?.disconnect();
     setSession(null);
     sessionRef.current = null;
+    sequenceRef.current = 0;
     resetAnalysisState();
     await initializeSession();
   }, [initializeSession, resetAnalysisState]);
@@ -269,6 +302,7 @@ export function useAnalysisSession(initialSessionId?: string): UseAnalysisSessio
     sessionError,
     connectionState,
     connectionError,
+    backpressureStats,
     analysisState,
     riskAssessment: analysisState.riskAssessment,
     transcript: analysisState.transcript,
