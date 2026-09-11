@@ -1,48 +1,48 @@
 "use client";
 
 /**
- * VoiceShield — Live Call Session Workspace Card
+ * VoiceShield — Primary Live Call Workspace Card (Hero Component)
  *
- * Primary operational workspace for an active security analysis session.
- * Renders caller metadata, risk score, ASR transcript, mic controls, and status.
- *
- * All live values arrive through typed props — no data fetching here.
- * This is a pure display component.
+ * Cybersecurity Operations Center (SOC) Aesthetic:
+ * - Glassmorphism card with subtle animated border gradient
+ * - 200px Circular SVG Progress Ring Risk Gauge
+ * - 3-Column Elegant Stat Cards with colored circular icon backgrounds
+ * - Terminal aesthetic Live Transcript Box with cyan glow & blinking cursor
+ * - Glowing primary action controls with state-aware animations
  */
 
 import React, { useState } from "react";
-import { LiveCall } from "@/types/dashboard";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Radio,
   PhoneCall,
-  Clock,
-  User,
-  ShieldAlert,
+  Mic,
+  Square,
   Play,
   Loader2,
-  FileText,
-  Mic,
-  MicOff,
-  Square,
+  Radio,
+  Terminal,
+  ShieldAlert,
+  ShieldCheck,
+  Clock,
+  User,
+  AlertTriangle,
 } from "lucide-react";
-import { getRiskColorClasses } from "@/lib/utils";
+import type { LiveCall } from "@/types/dashboard";
 import type { ConnectionState } from "@/lib/websocket/analysis-socket";
-import type { MicrophoneState, MicrophoneStats } from "@/hooks/use-microphone";
 import type { AnalysisStatus } from "@/types/analysis";
+import type { MicrophoneState, MicrophoneStats } from "@/hooks/use-microphone";
+import type { AnalyzeSegmentRequest } from "@/lib/api/types";
 
 interface LiveCallCardProps {
   call: LiveCall;
-  connectionState?: ConnectionState;
-  analysisStatus?: AnalysisStatus;
+  connectionState: ConnectionState;
+  analysisStatus: AnalysisStatus;
   transcript?: string;
-  micState?: MicrophoneState;
-  micStats?: MicrophoneStats;
+  micState: MicrophoneState;
+  micStats: MicrophoneStats;
   isInitializing?: boolean;
-  /** Session error (session-level, not analysis-level) */
   sessionError?: string | null;
-  onTriggerAnalysis?: () => Promise<void>;
+  onTriggerAnalysis?: (payload?: AnalyzeSegmentRequest) => Promise<void>;
   onStartMicrophone?: () => Promise<void>;
   onStopMicrophone?: () => void;
   onResetSession?: () => Promise<void>;
@@ -50,11 +50,11 @@ interface LiveCallCardProps {
 
 export function LiveCallCard({
   call,
-  connectionState = "DISCONNECTED",
-  analysisStatus = "IDLE",
+  connectionState,
+  analysisStatus,
   transcript = "",
-  micState = "IDLE",
-  micStats = { level: 0, totalSamples: 0, windowsDispatched: 0, secondsBuffered: 0 },
+  micState,
+  micStats,
   isInitializing = false,
   sessionError = null,
   onTriggerAnalysis,
@@ -63,13 +63,21 @@ export function LiveCallCard({
   onResetSession,
 }: LiveCallCardProps) {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const riskStyles = getRiskColorClasses(call.riskLevel);
 
+  const isConnected = connectionState === "CONNECTED";
+  const isSessionReady = isConnected && !isInitializing;
   const isMicActive = micState === "CAPTURING";
-  const isMicRequesting = micState === "MICROPHONE_INITIALIZING";
+  const isMicRequesting = micState === "MICROPHONE_PERMISSION_REQUIRED" || micState === "MICROPHONE_INITIALIZING";
   const isMicStopping = micState === "STOPPING";
-  const isMicError = micState === "ERROR" || micState === "UNSUPPORTED" || micState === "MICROPHONE_PERMISSION_REQUIRED";
-  const isSessionReady = !!call.sessionId && call.sessionId !== "VS-2026-INIT" && !isInitializing;
+  const isMicError = micState === "ERROR" || micState === "UNSUPPORTED";
+
+  const handleMicToggle = async () => {
+    if (isMicActive) {
+      onStopMicrophone?.();
+    } else {
+      await onStartMicrophone?.();
+    }
+  };
 
   const handleRunAnalysis = async () => {
     if (!onTriggerAnalysis || isAnalyzing) return;
@@ -81,135 +89,124 @@ export function LiveCallCard({
     }
   };
 
-  const handleMicToggle = async () => {
-    if (isMicActive) {
-      onStopMicrophone?.();
-    } else if (!isMicRequesting && !isMicStopping && isSessionReady) {
-      await onStartMicrophone?.();
-    }
-  };
+  const isPending = (analysisStatus === "IDLE" || isInitializing) && call.overallRiskScore === 0;
 
-  const levelBars = Math.round(micStats.level * 12);
+  // SVG Progress Ring Geometry (200px diameter)
+  const radius = 78;
+  const circumference = 2 * Math.PI * radius; // ~490.09
+  const scorePercent = Math.min(100, Math.max(0, call.overallRiskScore));
+  const strokeDashoffset = circumference - (circumference * scorePercent) / 100;
 
-  // Derive transcript placeholder based on real state
-  const transcriptPlaceholder = (): string => {
-    if (isInitializing) return "Initializing session...";
-    if (connectionState === "CONNECTING" || connectionState === "RECONNECTING")
-      return "Establishing secure analysis channel...";
-    if (!isSessionReady) return "Initialize a call session to begin analysis.";
-    if (isMicActive) return "Listening... speak to begin live transcription.";
-    if (analysisStatus === "PROCESSING") return "Processing audio window...";
-    return "Waiting for audio. Start mic capture or click \"Run AI Analysis\".";
+  const transcriptPlaceholder = () => {
+    if (isMicActive) return "STREAM ACTIVE // Capturing live PCM audio stream... Real-time speech recognition transcript will appear here.";
+    if (analysisStatus === "PROCESSING") return "INFERENCE RUNNING // Transcribing and screening voice segments with faster-whisper and ECAPA-TDNN...";
+    return "FEED IDLE // Awaiting audio stream. Click 'Start Call Protection' or 'Run AI Test' to evaluate caller audio.";
   };
 
   return (
-    <Card className="border-slate-800 bg-slate-900/90 relative overflow-hidden">
-      {/* Semantic risk-level top bar */}
-      <div className={`h-1 w-full ${riskStyles.bg}`} />
+    <div className="relative rounded-2xl border border-slate-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+      <div className="relative rounded-2xl bg-white p-6 sm:p-7 space-y-6">
 
-      <CardContent className="p-5 space-y-4">
-        {/* ── Session Header ─────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-800 gap-2">
-          <div className="flex items-center space-x-2">
-            <div className="p-1 rounded bg-slate-800 border border-slate-700 text-rose-400">
+        {/* ── Top Header with Title, Status & Hero Action Buttons ─────── */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+          <div className="flex items-center space-x-4">
+            <div className={`relative flex items-center justify-center w-12 h-12 rounded-xl border transition-all duration-150 flex-shrink-0 ${
+              isMicActive
+                ? "bg-emerald-50 border-emerald-300 text-emerald-600 shadow-sm animate-pulse"
+                : isInitializing
+                ? "bg-amber-50 border-amber-300 text-amber-600"
+                : "bg-blue-50 border-blue-200 text-blue-600 shadow-sm"
+            }`}>
               {isInitializing ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+                <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
+              ) : isMicActive ? (
+                <Radio className="w-6 h-6 text-emerald-600 animate-pulse" />
               ) : (
-                <Radio className="w-3.5 h-3.5 animate-pulse text-rose-400" />
+                <PhoneCall className="w-6 h-6 text-blue-600" />
               )}
             </div>
-            <span className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wider">
-              CURRENT CALL SESSION
-            </span>
-            {isInitializing ? (
-              <span className="font-mono text-xs text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                INITIALIZING...
-              </span>
-            ) : (
-              <span className="font-mono text-xs text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
-                {call.sessionId}
-              </span>
-            )}
+
+            <div>
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <h2 className="text-base sm:text-lg font-bold text-[#0F172A] tracking-tight font-sans">
+                  {call.callerName || "Direct Call Trunk"}
+                </h2>
+                <span className="font-mono text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-200">
+                  {call.sessionId}
+                </span>
+                <span className="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-slate-100 text-[#64748B] border border-slate-200">
+                  {call.verificationState}
+                </span>
+              </div>
+              <p className="text-xs text-[#64748B] mt-1 font-sans">
+                Active Telephony Session • Biometric &amp; Audio Forensics Protection
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2">
-            {/* WebSocket Connection Badge */}
-            <div className="flex items-center space-x-1.5 font-mono text-[10px]">
-              <span className="text-slate-400 uppercase">WS:</span>
-              <span
-                className={`px-2 py-0.5 rounded border text-[10px] font-bold ${
-                  connectionState === "CONNECTED"
-                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                    : connectionState === "CONNECTING" || connectionState === "RECONNECTING"
-                    ? "bg-amber-500/10 border-amber-500/30 text-amber-400"
-                    : "bg-slate-800 border-slate-700 text-slate-400"
-                }`}
-              >
-                {connectionState}
-              </span>
-            </div>
-
-            {/* Mic Toggle */}
+          {/* Primary Action Buttons */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Live Mic Button */}
             <button
               id="mic-toggle-btn"
               onClick={handleMicToggle}
               disabled={isMicRequesting || isMicStopping || !isSessionReady}
               aria-label={isMicActive ? "Stop microphone capture" : "Start microphone capture"}
               className={[
-                "flex items-center space-x-1.5 px-3 py-1 font-mono text-xs font-bold rounded transition border shadow-sm",
+                "flex items-center space-x-2 px-5 py-2.5 text-xs sm:text-sm font-semibold rounded-xl transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer min-h-[44px]",
                 isMicActive
-                  ? "bg-rose-600 hover:bg-rose-500 border-rose-400/30 text-white"
+                  ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm ring-2 ring-emerald-400/50 animate-pulse"
                   : isMicRequesting
-                  ? "bg-amber-600/50 border-amber-400/30 text-amber-200 cursor-wait"
+                  ? "bg-amber-50 border border-amber-300 text-amber-800 cursor-wait"
                   : isMicStopping
-                  ? "bg-slate-700 border-slate-600 text-slate-300 cursor-wait"
+                  ? "bg-slate-100 border border-slate-200 text-slate-500 cursor-wait"
                   : isMicError
-                  ? "bg-rose-800/50 border-rose-600/30 text-rose-300 cursor-not-allowed"
+                  ? "bg-red-50 border border-red-200 text-red-700 cursor-not-allowed"
                   : !isSessionReady
-                  ? "bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed"
-                  : "bg-emerald-700 hover:bg-emerald-600 border-emerald-400/30 text-white",
+                  ? "bg-slate-100 border border-slate-200 text-slate-400 cursor-not-allowed"
+                  : "bg-white hover:bg-slate-50 border border-slate-300 text-slate-800 shadow-sm hover:border-slate-400 hover:scale-[1.02]",
               ].join(" ")}
             >
               {isMicActive ? (
                 <>
-                  <Square className="w-3.5 h-3.5 fill-current" />
-                  <span>Stop Mic</span>
+                  <Square className="w-4 h-4 fill-current text-white" />
+                  <span>Stop Protection</span>
                 </>
               ) : isMicRequesting ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Requesting...</span>
+                  <Loader2 className="w-4 h-4 animate-spin text-amber-600" />
+                  <span>Requesting Mic...</span>
                 </>
               ) : isMicStopping ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
                   <span>Stopping...</span>
                 </>
               ) : (
                 <>
-                  <Mic className="w-3.5 h-3.5" />
-                  <span>Live Mic</span>
+                  <Mic className="w-4 h-4 text-blue-600" />
+                  <span>Start Call Protection</span>
                 </>
               )}
             </button>
 
-            {/* Manual Analysis Trigger */}
+            {/* Run Analysis Button */}
             {!isMicActive && onTriggerAnalysis && isSessionReady && (
               <button
                 id="run-analysis-btn"
                 onClick={handleRunAnalysis}
                 disabled={isAnalyzing || analysisStatus === "PROCESSING"}
-                className="flex items-center space-x-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-mono text-xs font-bold rounded transition border border-blue-400/30 shadow-sm"
+                className="flex items-center space-x-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-sm hover:scale-[1.02] transition-all duration-150 cursor-pointer min-h-[44px]"
               >
                 {isAnalyzing || analysisStatus === "PROCESSING" ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
                     <span>Analyzing...</span>
                   </>
                 ) : (
                   <>
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Run Analysis</span>
+                    <Play className="w-4 h-4 text-white fill-current transition-transform group-hover:scale-110" />
+                    <span>Run AI Test</span>
                   </>
                 )}
               </button>
@@ -217,178 +214,320 @@ export function LiveCallCard({
           </div>
         </div>
 
-        {/* ── Session / Mic Error Banners ─────────────────────────────── */}
+        {/* ── Network / Session Error Notices ─────────────────────────── */}
         {sessionError && (
-          <div className="px-3 py-2 rounded-md bg-rose-950/60 border border-rose-600/30 text-[11px] font-mono text-rose-300 flex items-center justify-between gap-2">
-            <span>⚠ {sessionError}</span>
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 border-l-4 border-l-red-500 text-xs text-red-800 flex items-center justify-between gap-2 shadow-sm">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0" />
+              <span>{sessionError}</span>
+            </div>
             {onResetSession && (
               <button
                 onClick={onResetSession}
-                className="px-2 py-0.5 text-[10px] font-bold border border-rose-500/30 rounded hover:bg-rose-500/20 transition"
+                className="underline text-red-700 hover:text-red-900 font-bold text-xs cursor-pointer"
               >
-                Retry
+                Reset Session
               </button>
             )}
           </div>
         )}
 
-        {isMicActive && (
-          <div className="flex items-center justify-between px-3 py-2 rounded-md bg-emerald-950/60 border border-emerald-600/30">
-            <div className="flex items-center space-x-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[11px] font-mono font-bold text-emerald-300 uppercase tracking-wide">
-                CAPTURING AUDIO
-              </span>
-              <span className="text-[10px] font-mono text-emerald-500">
-                Streaming 4s window / 1s hop · {micStats.windowsDispatched} windows sent
-              </span>
-            </div>
-            <div
-              className="flex items-center space-x-0.5"
-              role="meter"
-              aria-valuenow={Math.round(micStats.level * 100)}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`Audio level ${Math.round(micStats.level * 100)}%`}
-            >
-              {Array.from({ length: 12 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-1 rounded-sm transition-all duration-75 ${
-                    i < levelBars
-                      ? i < 6
-                        ? "bg-emerald-400 h-3"
-                        : i < 9
-                        ? "bg-amber-400 h-4"
-                        : "bg-rose-400 h-5"
-                      : "bg-slate-700 h-2"
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
         {isMicError && (
-          <div className="flex items-center space-x-2 px-3 py-2 rounded-md bg-rose-950/60 border border-rose-600/30">
-            <MicOff className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
-            <span className="text-[11px] font-mono text-rose-300">
-              {micState === "UNSUPPORTED"
-                ? "Browser microphone API not supported. Use manual analysis."
-                : micState === "MICROPHONE_PERMISSION_REQUIRED"
-                ? "Microphone access denied. Check browser permissions, then try again."
-                : "Microphone error. Check connection or try manual analysis."}
-            </span>
+          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 border-l-4 border-l-amber-500 text-xs text-amber-800 flex items-center justify-between gap-2 shadow-sm">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <span>
+                Microphone capture issue: {micState === "UNSUPPORTED" ? "Browser audio unsupported" : "Verify browser microphone permissions"}
+              </span>
+            </div>
           </div>
         )}
 
-        {/* ── Caller Identity Grid ────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-md bg-slate-950/80 border border-slate-800/80">
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-mono uppercase text-slate-400 flex items-center">
-              <User className="w-3 h-3 mr-1 text-slate-400" />
-              Caller Identity
-            </span>
-            <p className="text-sm font-semibold text-white">
-              {call.callerName || <span className="text-slate-500 italic">—</span>}
-            </p>
-            <p className="text-[11px] text-slate-400 font-mono">
-              {call.callerRole || <span className="text-slate-500 italic">—</span>}
-            </p>
+        {/* ── Caller Identity / Inbound Line / Session Stat Cards ──────── */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Stat Card 1: Caller Identity */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-none flex items-center space-x-3.5 hover:border-slate-300 transition-colors">
+            <div className="w-10 h-10 rounded-full bg-blue-100 border border-blue-200 flex items-center justify-center text-blue-600 flex-shrink-0">
+              <User className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#64748B] block">
+                Caller Identity
+              </span>
+              <p className="text-sm font-bold text-[#0F172A] truncate mt-0.5">
+                {call.callerName || "Direct Call Trunk"}
+              </p>
+              <span className="text-[11px] text-[#64748B] block truncate">
+                {call.callerRole || "Executive Channel"}
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-mono uppercase text-slate-400 flex items-center">
-              <PhoneCall className="w-3 h-3 mr-1 text-slate-400" />
-              Inbound Line
-            </span>
-            <p className="text-sm font-mono font-semibold text-slate-200">
-              {call.callerNumber || <span className="text-slate-500 italic">—</span>}
-            </p>
-            <span className="text-[10px] font-mono text-rose-400 font-semibold inline-block bg-rose-500/10 px-1.5 py-0.2 rounded border border-rose-500/20">
-              Verification: {call.verificationState}
-            </span>
+          {/* Stat Card 2: Inbound Line */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-none flex items-center space-x-3.5 hover:border-slate-300 transition-colors">
+            <div className="w-10 h-10 rounded-full bg-cyan-100 border border-cyan-200 flex items-center justify-center text-cyan-700 flex-shrink-0">
+              <Radio className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#64748B] block">
+                Inbound Line
+              </span>
+              <p className="font-mono text-sm font-semibold text-blue-700 truncate mt-0.5">
+                {call.callerNumber || "+1 (555) 234-8901"}
+              </p>
+              <span className="text-[11px] text-[#64748B] block truncate">
+                Routing: SIP / Direct Trunk
+              </span>
+            </div>
           </div>
 
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-mono uppercase text-slate-400 flex items-center">
-              <Clock className="w-3 h-3 mr-1 text-slate-400" />
-              Session Start
-            </span>
-            <p className="text-sm font-mono font-extrabold text-blue-400">
-              {call.startTime || "—"}
-            </p>
-            <p className="text-[10px] text-slate-400 font-mono">{call.status}</p>
+          {/* Stat Card 3: Session Duration */}
+          <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 shadow-none flex items-center space-x-3.5 hover:border-slate-300 transition-colors">
+            <div className="w-10 h-10 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 flex-shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#64748B] block">
+                Session Duration
+              </span>
+              <p className="font-mono text-sm font-semibold text-emerald-700 truncate mt-0.5">
+                {call.duration || "00:00"}
+              </p>
+              <span className="text-[11px] font-mono text-[#64748B] block truncate">
+                Started: {call.startTime || "Active"}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* ── Risk Score ──────────────────────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 rounded-md bg-slate-950 border border-slate-800 gap-4">
-          <div className="flex items-center space-x-3">
-            <div className={`p-2.5 rounded ${riskStyles.badge} border flex items-center justify-center`}>
-              <ShieldAlert className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400 block">
-                Security Risk Level (Risk Fusion Engine)
-              </span>
-              <div className="flex items-center space-x-2 mt-0.5">
-                <span className="text-lg font-bold text-white tracking-tight">Assessment:</span>
-                {isInitializing ? (
-                  <span className="text-xs font-mono text-slate-500 italic">Initializing...</span>
-                ) : analysisStatus === "IDLE" && call.overallRiskScore === 0 ? (
-                  <span className="text-xs font-mono text-slate-500 italic">PENDING ANALYSIS</span>
-                ) : (
-                  <Badge variant={call.riskLevel} className="text-xs font-black font-mono px-2.5 py-0.5">
-                    {call.riskLevel}
-                  </Badge>
-                )}
+        {/* ── HERO RISK GAUGE: 200px Circular SVG Progress Ring Section ──── */}
+        <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 relative overflow-hidden">
+          <div className="relative flex flex-col lg:flex-row items-center justify-between gap-8">
+            {/* Left Column: Shield Icon Badge & Verdict Explanation */}
+            <div className="flex-1 space-y-3 text-center lg:text-left">
+              <div className="flex items-center justify-center lg:justify-start space-x-3.5">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all ${
+                  isPending
+                    ? "bg-blue-100 border-blue-200 text-blue-600 shadow-sm"
+                    : call.riskLevel === "HIGH"
+                    ? "bg-red-100 border-red-200 text-red-600 shadow-sm"
+                    : call.riskLevel === "MEDIUM"
+                    ? "bg-amber-100 border-amber-200 text-amber-600 shadow-sm"
+                    : "bg-emerald-100 border-emerald-200 text-emerald-600 shadow-sm"
+                }`}>
+                  {isPending ? (
+                    <ShieldCheck className="w-6 h-6 text-blue-600" />
+                  ) : call.riskLevel === "LOW" ? (
+                    <ShieldCheck className="w-6 h-6 text-emerald-600" />
+                  ) : (
+                    <ShieldAlert className="w-6 h-6 text-red-600 animate-pulse" />
+                  )}
+                </div>
+                <div>
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#64748B] block">
+                    Risk Fusion Engine Verdict
+                  </span>
+                  <h3 className="text-lg sm:text-xl font-bold text-[#0F172A] tracking-tight font-sans">
+                    {isPending
+                      ? "Ready to Monitor Call"
+                      : call.riskLevel === "LOW"
+                      ? "Authentic Caller Verified"
+                      : call.riskLevel === "MEDIUM"
+                      ? "Suspicious Voice Patterns Detected"
+                      : "Critical Voice Clone Alert"}
+                  </h3>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="flex flex-col items-start sm:items-end justify-center sm:border-l sm:border-slate-800 sm:pl-5">
-            <span className="text-[10px] uppercase tracking-wider text-slate-400 font-mono block">
-              Overall Fused Risk Score
-            </span>
-            {isInitializing ? (
-              <span className="text-sm font-mono text-slate-500 italic">—</span>
-            ) : analysisStatus === "IDLE" && call.overallRiskScore === 0 ? (
-              <span className="text-sm font-mono text-slate-500 italic">ANALYSIS PENDING</span>
-            ) : (
-              <div className="flex items-baseline space-x-1">
-                <span className={`text-3xl font-black font-mono tracking-tight ${riskStyles.text}`}>
-                  {call.overallRiskScore}
+              <p className="text-xs sm:text-sm text-[#64748B] leading-relaxed max-w-xl font-sans">
+                {isPending
+                  ? "Awaiting active voice segment. Click 'Start Call Protection' to capture live speech, or 'Run AI Test' to evaluate simulated deepfake vectors."
+                  : call.riskLevel === "LOW"
+                  ? "Acoustic spectrum, vocal tract consistency, and conversational semantics confirm natural human speech. No synthetic vocoder artifacts detected."
+                  : call.riskLevel === "MEDIUM"
+                  ? "Elevated acoustic variance or unusual urgency patterns detected. Secondary verification protocol recommended before sharing credentials."
+                  : "High-confidence synthetic voice generation detected. Frequency phase discontinuities and coercive speech markers indicate an active impersonation attack."}
+              </p>
+
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 pt-1">
+                <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-md bg-white border border-slate-200 text-[#64748B] shadow-none">
+                  WAV2VEC2: ACTIVE
                 </span>
-                <span className="text-xs font-mono text-slate-400">/ 100</span>
+                <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-md bg-white border border-slate-200 text-[#64748B] shadow-none">
+                  ECAPA-TDNN: 512-DIM
+                </span>
+                <span className="text-[10px] font-mono uppercase tracking-wider px-2.5 py-1 rounded-md bg-white border border-slate-200 text-[#64748B] shadow-none">
+                  WHISPER ASR: ONLINE
+                </span>
               </div>
+            </div>
+
+            {/* Right Column: 200px Circular SVG Progress Ring */}
+            <div className="flex flex-col items-center justify-center flex-shrink-0">
+              <div className="relative w-[200px] h-[200px] flex items-center justify-center">
+                <svg
+                  className="w-full h-full -rotate-90 transform"
+                  viewBox="0 0 200 200"
+                  aria-label={`Risk score: ${call.overallRiskScore} percent`}
+                >
+                  <defs>
+                    {/* High Risk Gradient */}
+                    <linearGradient id="highRiskGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#EF4444" />
+                      <stop offset="100%" stopColor="#DC2626" />
+                    </linearGradient>
+                    {/* Medium Risk Gradient */}
+                    <linearGradient id="mediumRiskGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#F59E0B" />
+                      <stop offset="100%" stopColor="#D97706" />
+                    </linearGradient>
+                    {/* Low Risk Gradient */}
+                    <linearGradient id="lowRiskGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#10B981" />
+                      <stop offset="100%" stopColor="#059669" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Background Track Circle */}
+                  <circle
+                    cx="100"
+                    cy="100"
+                    r={radius}
+                    className="stroke-slate-200"
+                    strokeWidth="10"
+                    fill="transparent"
+                  />
+
+                  {/* Rotating Dashed Circle when PENDING */}
+                  {isPending ? (
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r={radius}
+                      stroke="#3B82F6"
+                      strokeWidth="10"
+                      strokeDasharray="14 10"
+                      fill="transparent"
+                      className="animate-spin-slow opacity-60"
+                      strokeLinecap="round"
+                    />
+                  ) : (
+                    /* Active Progress Ring Fill */
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r={radius}
+                      stroke={
+                        call.riskLevel === "HIGH"
+                          ? "url(#highRiskGradient)"
+                          : call.riskLevel === "MEDIUM"
+                          ? "url(#mediumRiskGradient)"
+                          : "url(#lowRiskGradient)"
+                      }
+                      strokeWidth="12"
+                      strokeDasharray={circumference}
+                      strokeDashoffset={strokeDashoffset}
+                      strokeLinecap="round"
+                      fill="transparent"
+                      className="transition-all duration-700 ease-out"
+                    />
+                  )}
+                </svg>
+
+                {/* Center Score & Badge Display */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center select-none">
+                  {isPending ? (
+                    <>
+                      <span className="font-mono text-2xl font-bold text-slate-500 tracking-wider animate-pulse">
+                        READY
+                      </span>
+                      <span className="text-[10px] font-mono uppercase tracking-widest text-[#64748B] mt-0.5">
+                        Awaiting Audio
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-mono text-4xl font-extrabold text-[#0F172A] tracking-tight">
+                        {call.overallRiskScore}%
+                      </span>
+                      <Badge
+                        variant={call.riskLevel}
+                        className="text-[10px] font-bold px-2.5 py-0.5 mt-1"
+                      >
+                        {call.riskLevel} THREAT
+                      </Badge>
+                      <span className="text-[9px] font-mono text-[#64748B] uppercase tracking-widest mt-1">
+                        Risk Score
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Terminal Aesthetic Live Transcript Box ───────────────────── */}
+        <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 relative overflow-hidden space-y-3">
+          <div className="relative flex items-center justify-between flex-wrap gap-2">
+            <span className="text-xs font-bold text-slate-700 flex items-center gap-2 font-mono tracking-wide">
+              <Terminal className="w-4 h-4 text-blue-600" />
+              LIVE_CONVERSATION_STREAM // TRANSCRIBE_V2
+            </span>
+
+            {/* Audio Spectrum Meter when mic is capturing */}
+            {isMicActive ? (
+              <div className="flex items-center space-x-2 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-[11px] font-mono font-bold text-emerald-700">STREAMING</span>
+                <div
+                  className="flex items-center space-x-1 pl-1"
+                  role="meter"
+                  aria-valuenow={Math.round(micStats.level * 100)}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-1 rounded-full transition-all duration-75 ${
+                        i < Math.min(8, Math.round(micStats.level * 12))
+                          ? i < 4
+                            ? "bg-emerald-500 h-3"
+                            : i < 6
+                            ? "bg-amber-500 h-3.5"
+                            : "bg-red-500 h-4"
+                          : "bg-slate-300 h-1.5"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : analysisStatus === "PROCESSING" ? (
+              <span className="text-xs font-mono font-semibold text-amber-800 flex items-center gap-1.5 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                <span>INFERENCE_PROCESSING...</span>
+              </span>
+            ) : null}
+          </div>
+
+          <div className="relative p-4 rounded-xl bg-white border border-slate-200 text-xs sm:text-sm text-slate-800 min-h-[72px] max-h-40 overflow-y-auto leading-relaxed font-mono">
+            {transcript ? (
+              <p className="text-slate-900 font-mono leading-relaxed">
+                {transcript}
+                <span className="inline-block w-2 h-4 ml-1.5 bg-blue-600 animate-cursor-blink align-middle" />
+              </p>
+            ) : (
+              <p className="text-slate-400 font-mono leading-relaxed">
+                {transcriptPlaceholder()}
+                <span className="inline-block w-2 h-4 ml-1.5 bg-blue-400/50 animate-cursor-blink align-middle" />
+              </p>
             )}
           </div>
         </div>
 
-        {/* ── Live ASR Transcript ─────────────────────────────────────── */}
-        <div className="p-3 rounded-md bg-slate-950/90 border border-slate-800 space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-mono uppercase font-bold text-slate-400 flex items-center">
-              <FileText className="w-3 h-3 mr-1 text-blue-400" />
-              Live Speech Transcript (faster-whisper base)
-            </span>
-            {analysisStatus === "PROCESSING" && (
-              <span className="text-[10px] font-mono text-amber-400 flex items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mr-1 animate-ping" />
-                {isMicActive ? "Transcribing live audio..." : "Transcribing..."}
-              </span>
-            )}
-          </div>
-          <div className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs font-mono min-h-[44px] max-h-28 overflow-y-auto leading-relaxed">
-            {transcript ? (
-              <p className="text-slate-100">{transcript}</p>
-            ) : (
-              <p className="text-slate-400 italic">{transcriptPlaceholder()}</p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
+

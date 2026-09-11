@@ -7,23 +7,23 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 export function Badge({ className, variant = "default", children, ...props }: BadgeProps) {
-  let variantClasses = "bg-slate-800 text-slate-300 border-slate-700";
+  let variantClasses = "bg-slate-100 text-[#64748B] border-slate-200";
 
   if (variant === "LOW" || variant === "MEDIUM" || variant === "HIGH") {
     const riskStyles = getRiskColorClasses(variant);
     variantClasses = `${riskStyles.badge} border ${riskStyles.glow}`;
   } else if (variant === "active") {
-    variantClasses = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 animate-pulse";
+    variantClasses = "bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm animate-pulse";
   } else if (variant === "outline") {
-    variantClasses = "bg-transparent text-slate-300 border border-slate-700";
+    variantClasses = "bg-transparent text-[#64748B] border border-slate-300 hover:border-slate-400";
   } else if (variant === "neutral") {
-    variantClasses = "bg-slate-800/80 text-slate-300 border border-slate-700/60";
+    variantClasses = "bg-slate-100 text-[#64748B] border border-slate-200";
   }
 
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide transition-colors focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 focus:ring-offset-slate-900",
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/40",
         variantClasses,
         className
       )}
@@ -33,3 +33,4 @@ export function Badge({ className, variant = "default", children, ...props }: Ba
     </span>
   );
 }
+

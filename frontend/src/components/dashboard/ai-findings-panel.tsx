@@ -3,21 +3,13 @@
 /**
  * VoiceShield — Detection Events & Security Findings Stream
  *
- * Renders the real-time findings feed from the AI analysis pipeline.
- * Accepts two clearly typed inputs:
- *   1. SecurityFinding[] — typed findings from SECURITY_FINDING events
- *   2. SecurityEvent[]   — raw AI pipeline events (all types)
- *
- * Security findings are shown with higher visual prominence.
- * General pipeline events are shown with subdued style.
- *
- * Newest entries first. All timestamps from backend are shown as-is.
- * Empty state is honest — no fake findings.
+ * Implements SplitSmart Soft-Professional Fintech Design:
+ * - Level 1 White Card with diffused ambient shadow
+ * - High-contrast functional signaling for security findings
  */
 
 import React from "react";
 import type { SecurityFinding, SecurityEvent } from "@/lib/api/types";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Activity } from "lucide-react";
 
@@ -26,18 +18,13 @@ type DisplayItem =
   | { kind: "event"; data: SecurityEvent };
 
 interface AIFindingsPanelProps {
-  /** Typed SecurityFinding objects from SECURITY_FINDING events */
   findings: SecurityFinding[];
-  /** All raw SecurityEvent objects for the general events feed */
   events: SecurityEvent[];
 }
 
 export function AIFindingsPanel({ findings, events }: AIFindingsPanelProps) {
-  // Merge findings and events into a single chronological stream
-  // Findings take visual priority, events fill context
   const items: DisplayItem[] = [
     ...findings.map((f): DisplayItem => ({ kind: "finding", data: f })),
-    // Show pipeline events that are NOT ANALYSIS_STARTED (too noisy)
     ...events
       .filter((e) =>
         e.event_type !== "ANALYSIS_STARTED" &&
@@ -49,28 +36,32 @@ export function AIFindingsPanel({ findings, events }: AIFindingsPanelProps) {
   const totalCount = items.length;
 
   return (
-    <Card className="border-slate-800 bg-slate-900/90">
-      <CardHeader className="pb-3 pt-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-mono font-bold uppercase tracking-wider text-slate-300">
-            DETECTION EVENTS & SECURITY FINDINGS STREAM
-          </CardTitle>
-          <span className="text-[10px] font-mono text-slate-400">
-            {findings.length > 0 && (
-              <span className="text-rose-400 font-bold mr-1.5">{findings.length} Finding{findings.length === 1 ? "" : "s"}</span>
-            )}
-            {totalCount - findings.length > 0 && (
-              <span>{totalCount - findings.length} Event{totalCount - findings.length === 1 ? "" : "s"}</span>
-            )}
-            {totalCount === 0 && "No Events"}
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="p-6 pb-4 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h3 className="text-base font-bold text-[#0F172A] tracking-tight font-sans">
+            Real-Time AI Findings &amp; Detection Feed
+          </h3>
+          <p className="text-xs text-[#64748B] mt-0.5 font-sans">
+            Live chronological stream of security evaluations and threat anomalies
+          </p>
+        </div>
+        <div className="flex items-center gap-2 text-xs">
+          {findings.length > 0 && (
+            <span className="text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200 font-mono font-bold text-[10px]">
+              {findings.length} Finding{findings.length === 1 ? "" : "s"}
+            </span>
+          )}
+          <span className="bg-slate-100 text-slate-700 px-3 py-0.5 rounded-full border border-slate-200 font-mono text-[10px] font-bold">
+            {totalCount} Total Event{totalCount === 1 ? "" : "s"}
           </span>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-1.5 pt-0 max-h-80 overflow-y-auto">
+      <div className="space-y-3 p-6 max-h-80 overflow-y-auto">
         {items.length === 0 ? (
-          <div className="p-4 text-center rounded bg-slate-950/80 border border-slate-800 text-xs font-mono text-slate-400">
-            No security findings or detection events recorded yet for this session.
+          <div className="p-8 text-center rounded-xl bg-slate-50 border border-slate-200 text-xs text-[#64748B] font-mono">
+            NO_FINDINGS_RECORDED // No detection anomalies or security alerts logged for this session.
           </div>
         ) : (
           items.map((item, idx) => {
@@ -80,44 +71,36 @@ export function AIFindingsPanel({ findings, events }: AIFindingsPanelProps) {
             return <EventRow key={`e-${item.data.event_id || idx}`} event={item.data} />;
           })
         )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Finding row — higher visual prominence (from SECURITY_FINDING events)
-// ---------------------------------------------------------------------------
-
-function FindingRow({ finding }: { finding: SecurityFinding }) {
-  return (
-    <div className="p-2.5 rounded bg-slate-950/90 border border-slate-700 space-y-1">
-      <div className="flex items-center justify-between font-mono text-[10px]">
-        <div className="flex items-center space-x-2">
-          <Shield className="w-3 h-3 text-rose-400 flex-shrink-0" />
-          <span className="text-slate-400 font-semibold">{finding.timestamp}</span>
-          <span className="text-rose-300 font-bold uppercase">
-            {finding.category.replace(/_/g, " ")}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Badge variant={finding.severity} className="text-[9px] font-mono font-bold px-1.5 py-0.2">
-            {finding.severity}
-          </Badge>
-          {finding.confidence > 0 && (
-            <span className="text-slate-500">{Math.round(finding.confidence * 100)}%</span>
-          )}
-        </div>
       </div>
-      <p className="text-xs font-semibold text-white font-mono">{finding.title}</p>
-      <p className="text-[11px] text-slate-400 leading-tight">{finding.details}</p>
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Event row — subdued style for general pipeline events
-// ---------------------------------------------------------------------------
+function FindingRow({ finding }: { finding: SecurityFinding }) {
+  return (
+    <div className="p-4 rounded-xl bg-red-50/40 border border-red-200 border-l-4 border-l-red-500 space-y-1.5 hover:border-red-300 transition-all duration-150">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center space-x-2">
+          <Shield className="w-4 h-4 text-red-600 flex-shrink-0" />
+          <span className="text-[#64748B] text-[11px] font-mono">{finding.timestamp}</span>
+          <span className="text-red-700 font-mono font-bold uppercase text-[11px] tracking-wide">
+            {finding.category.replace(/_/g, " ")}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge variant={finding.severity} className="text-[10px] font-bold px-2.5 py-0.5">
+            {finding.severity}
+          </Badge>
+          {finding.confidence > 0 && (
+            <span className="text-[#64748B] text-xs font-mono font-semibold">{Math.round(finding.confidence * 100)}% conf</span>
+          )}
+        </div>
+      </div>
+      <p className="text-sm font-bold text-[#0F172A] font-sans">{finding.title}</p>
+      <p className="text-xs text-[#475569] leading-relaxed font-sans">{finding.details}</p>
+    </div>
+  );
+}
 
 function EventRow({ event }: { event: SecurityEvent }) {
   const displaySource = event.source?.replace(/Real|Provider|TDNN|ECAPA/g, "").trim() || event.source;
@@ -128,19 +111,20 @@ function EventRow({ event }: { event: SecurityEvent }) {
     .trim();
 
   return (
-    <div className="p-2 rounded bg-slate-950/60 border border-slate-800/80 space-y-0.5">
-      <div className="flex items-center justify-between font-mono text-[10px]">
-        <div className="flex items-center space-x-1.5">
-          <Activity className="w-2.5 h-2.5 text-slate-500 flex-shrink-0" />
-          <span className="text-slate-500">{event.timestamp}</span>
-          <span className="text-slate-400 font-semibold uppercase">{displaySource}</span>
-          <span className="text-slate-600 uppercase text-[9px]">{displayType}</span>
+    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1 hover:border-slate-300 transition-all duration-150">
+      <div className="flex items-center justify-between text-xs">
+        <div className="flex items-center space-x-2">
+          <Activity className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+          <span className="text-[#64748B] text-[11px] font-mono">{event.timestamp}</span>
+          <span className="text-blue-700 font-mono font-bold text-xs">{displaySource}</span>
+          <span className="text-[#64748B] text-[10px] uppercase font-mono">{displayType}</span>
         </div>
-        <Badge variant={event.severity} className="text-[9px] font-mono font-bold px-1.5 py-0.2 opacity-80">
+        <Badge variant={event.severity} className="text-[9px] font-bold px-2 py-0.5">
           {event.severity}
         </Badge>
       </div>
-      <p className="text-[11px] text-slate-400 leading-tight pl-4">{event.message}</p>
+      <p className="text-xs text-[#475569] leading-relaxed pl-5.5 font-sans">{event.message}</p>
     </div>
   );
 }
+

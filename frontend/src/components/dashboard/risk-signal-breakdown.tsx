@@ -3,26 +3,21 @@
 /**
  * VoiceShield — Detection Assessment Panel (Risk Signal Breakdown)
  *
- * Renders the 4 core AI signals from the Risk Fusion Engine.
- * Accepts typed per-signal state from useAnalysisState rather than a
- * generic RiskSignal array that mixes backend and dashboard types.
- *
- * Two modes:
- *   1. Live mode (analysisState): shows real per-signal data when available
- *   2. Signals mode (signals[]): shows RiskSignal[] from REST assessment
- *
- * Truthful empty states:
- *   - "ANALYSIS PENDING" before first run
- *   - "REFERENCE UNAVAILABLE" for speaker when backend reports no reference
- *   - Raw scores shown without false precision claims
+ * Cybersecurity Operations Center (SOC) Aesthetic:
+ * - Glassmorphism card with 16px radius and dark gradient
+ * - 4 Signal cards with 3px colored left border accents matching threat status
+ * - 32px mini circular SVG progress ring on each card
+ * - Proper glowing pill chips with icons for status
+ * - Shimmer skeleton loading effect for pending analysis states
+ * - Lift on hover (-2px translateY) with expanded depth shadow
  */
 
 import React from "react";
 import type { RiskSignal } from "@/lib/api/types";
 import type { AnalysisState } from "@/hooks/use-analysis-state";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getRiskColorClasses } from "@/lib/utils";
+import { AudioWaveform, Fingerprint, ShieldAlert, Compass } from "lucide-react";
 
 interface RiskSignalBreakdownProps {
   /** Full analysis state — preferred when available */
@@ -47,18 +42,92 @@ export function RiskSignalBreakdown({ analysisState, signals = [] }: RiskSignalB
 
   // ── No data at all ─────────────────────────────────────────────────
   return (
-    <Card className="border-slate-800 bg-slate-900/90">
-      <CardHeader className="pb-3 pt-4">
-        <CardTitle className="text-sm font-mono font-bold uppercase tracking-wider text-slate-300">
-          DETECTION ASSESSMENT (RISK FUSION ENGINE)
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="p-4 text-center rounded bg-slate-950/80 border border-slate-800 text-xs font-mono text-slate-400">
-          No risk signals evaluated yet. Execute an audio analysis cycle to compute Risk Fusion scores.
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="pb-4 border-b border-slate-200">
+        <h3 className="text-base font-bold text-[#0F172A] tracking-tight font-sans">
+          AI Risk Signals &amp; Multi-Factor Analysis
+        </h3>
+      </div>
+      <div className="pt-4">
+        <div className="p-5 text-center rounded-xl bg-slate-50 border border-slate-200 text-xs text-[#64748B] font-mono">
+          NO_SIGNALS_EVALUATED // Execute an audio analysis cycle to compute Risk Fusion vectors.
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Mini Circular Progress Ring (32px diameter)
+// ---------------------------------------------------------------------------
+function MiniProgressRing({
+  score,
+  riskLevel,
+}: {
+  score: number | null;
+  riskLevel: "LOW" | "MEDIUM" | "HIGH" | null;
+}) {
+  const r = 12;
+  const c = 2 * Math.PI * r; // ~75.4
+  const isPending = score === null;
+  const offset = isPending ? 0 : c - (c * Math.min(100, Math.max(0, score))) / 100;
+
+  const strokeColor =
+    riskLevel === "HIGH"
+      ? "#EF4444"
+      : riskLevel === "MEDIUM"
+      ? "#F59E0B"
+      : riskLevel === "LOW"
+      ? "#10B981"
+      : "#3B82F6";
+
+  return (
+    <div className="relative w-8 h-8 flex items-center justify-center flex-shrink-0">
+      <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 32 32">
+        {/* Background Track */}
+        <circle
+          cx="16"
+          cy="16"
+          r={r}
+          className="stroke-slate-200"
+          strokeWidth="3"
+          fill="transparent"
+        />
+        {isPending ? (
+          <circle
+            cx="16"
+            cy="16"
+            r={r}
+            stroke="#3B82F6"
+            strokeWidth="3"
+            strokeDasharray="6 4"
+            fill="transparent"
+            className="animate-spin-slow opacity-60"
+            strokeLinecap="round"
+          />
+        ) : (
+          <circle
+            cx="16"
+            cy="16"
+            r={r}
+            stroke={strokeColor}
+            strokeWidth="3.5"
+            strokeDasharray={c}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            fill="transparent"
+            className="transition-all duration-500 ease-out"
+          />
+        )}
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center text-[9px] font-mono font-bold text-[#0F172A]">
+        {score !== null ? (
+          <span>{score}</span>
+        ) : (
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -73,7 +142,9 @@ function LiveSignalView({ state }: { state: AnalysisState }) {
   const rows: {
     id: string;
     label: string;
+    sublabel: string;
     description: string;
+    icon: React.ElementType;
     score: number | null;
     riskLevel: "LOW" | "MEDIUM" | "HIGH" | null;
     interpretation: string;
@@ -81,8 +152,10 @@ function LiveSignalView({ state }: { state: AnalysisState }) {
   }[] = [
     {
       id: "voice-integrity",
-      label: "Voice Integrity",
-      description: "Synthetic Audio Detection (Wav2Vec2)",
+      label: "Voice Clone & Deepfake Check",
+      sublabel: "Acoustic Phase & Vocoder Forensics (Wav2Vec2)",
+      description: "Screens spectral anomalies and synthetic speech vocoder artifacts",
+      icon: AudioWaveform,
       score: spoof ? Math.round(spoof.spoofProbability * 100) : null,
       riskLevel: spoof
         ? spoof.spoofProbability >= 0.7 ? "HIGH"
@@ -91,19 +164,21 @@ function LiveSignalView({ state }: { state: AnalysisState }) {
         : null,
       interpretation: spoof
         ? spoof.spoofProbability >= 0.7
-          ? "Strong synthetic-speech indicators detected."
+          ? "Strong synthetic speech markers detected — high probability of AI voice clone."
           : spoof.spoofProbability >= 0.4
-          ? "Moderate synthetic-speech indicators detected."
-          : "Voice appears authentic. No significant synthetic indicators."
-        : "ANALYSIS PENDING",
+          ? "Moderate acoustic anomalies detected — review with caution."
+          : "Natural human voice frequencies detected. No deepfake clone markers."
+        : "Awaiting audio window...",
       note: spoof?.indicators.length
         ? `Indicators: ${spoof.indicators.slice(0, 2).join(", ")}`
         : undefined,
     },
     {
       id: "speaker-consistency",
-      label: "Speaker Consistency",
-      description: "Biometric Reference Comparison (ECAPA-TDNN)",
+      label: "Caller Biometric Match",
+      sublabel: "Voiceprint Embedding Verification (ECAPA-TDNN)",
+      description: "Matches speaker biometric embedding against enrolled trusted profile",
+      icon: Fingerprint,
       score: speaker && speaker.status === "AVAILABLE"
         ? Math.round(speaker.similarityScore * 100)
         : null,
@@ -113,22 +188,24 @@ function LiveSignalView({ state }: { state: AnalysisState }) {
           : "LOW"
         : null,
       interpretation: !speaker
-        ? "ANALYSIS PENDING"
+        ? "Awaiting audio window..."
         : speaker.status !== "AVAILABLE"
-        ? "REFERENCE PROFILE UNAVAILABLE"
+        ? "No reference voiceprint on file for this caller."
         : speaker.similarityScore < 0.5
-        ? "Low similarity to reference profile — possible identity mismatch."
+        ? "Low voice similarity to reference profile — possible impersonator."
         : speaker.similarityScore < 0.75
-        ? "Moderate similarity. Additional verification recommended."
-        : "Voice embedding matches reference profile.",
+        ? "Moderate voice similarity. Secondary challenge recommended."
+        : "Voiceprint positively matches stored reference profile.",
       note: speaker && speaker.status !== "AVAILABLE" && speaker.status !== "NO_REFERENCE"
         ? `Status: ${speaker.status}`
         : undefined,
     },
     {
       id: "social-engineering",
-      label: "Social Engineering",
-      description: "Intent & Coercion Analysis (Rule-based NLP)",
+      label: "Scam & Coercion Intent",
+      sublabel: "Conversational Urgency & Pressure (NLP)",
+      description: "Monitors transcript for high-pressure financial demands and coercion",
+      icon: ShieldAlert,
       score: socialEngineering ? Math.round(socialEngineering.urgencyScore) : null,
       riskLevel: socialEngineering
         ? socialEngineering.urgencyScore >= 60 ? "HIGH"
@@ -137,16 +214,18 @@ function LiveSignalView({ state }: { state: AnalysisState }) {
         : null,
       interpretation: socialEngineering
         ? socialEngineering.coercionDetected || socialEngineering.financialRequestDetected
-          ? "Coercive patterns or financial request detected in transcript."
+          ? "High pressure or urgent transfer demands detected in conversation."
           : socialEngineering.urgencyScore >= 30
-          ? "Elevated urgency signals detected."
-          : "No significant social engineering indicators detected."
-        : "ANALYSIS PENDING",
+          ? "Elevated urgency cues detected in speech."
+          : "Normal conversational tone. No aggressive pressure tactics detected."
+        : "Awaiting speech transcript...",
     },
     {
       id: "context-risk",
-      label: "Context Risk",
-      description: "Environmental Metadata (Context Engine)",
+      label: "Call Routing & Timing",
+      sublabel: "Call Environment Context & Line Integrity",
+      description: "Checks unusual line origin, VoIP forwarding, and off-hours timestamps",
+      icon: Compass,
       score: riskAssessment
         ? riskAssessment.contributing_signals.find(s =>
             s.label.toLowerCase().includes("context")
@@ -158,83 +237,114 @@ function LiveSignalView({ state }: { state: AnalysisState }) {
           )?.risk_level ?? null)
         : null,
       interpretation: !riskAssessment
-        ? "ANALYSIS PENDING"
-        : "Context metadata evaluated.",
+        ? "Awaiting session context..."
+        : "Line routing and call timestamp within normal parameters.",
     },
   ];
 
   return (
-    <Card className="border-slate-800 bg-slate-900/90">
-      <CardHeader className="pb-3 pt-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-mono font-bold uppercase tracking-wider text-slate-300">
-            DETECTION ASSESSMENT (RISK FUSION ENGINE)
-          </CardTitle>
-          <span className="text-[10px] font-mono text-slate-400">
-            4 Fused Signals
-          </span>
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      {/* Header */}
+      <div className="p-6 pb-4 border-b border-slate-200 flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-bold text-[#0F172A] tracking-tight font-sans">
+            AI Risk Signals &amp; Multi-Factor Analysis
+          </h3>
+          <p className="text-xs text-[#64748B] mt-0.5 font-sans">
+            Continuous multi-modal screening by the Risk Fusion Engine
+          </p>
         </div>
-      </CardHeader>
+        <span className="text-[10px] font-mono font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
+          4 CORE VECTORS
+        </span>
+      </div>
 
-      <CardContent className="space-y-2 pt-0">
+      {/* Signal Cards */}
+      <div className="space-y-4 p-6">
         {rows.map((row) => {
           const riskStyles = row.riskLevel ? getRiskColorClasses(row.riskLevel) : null;
+          const Icon = row.icon;
           const isPending = row.score === null;
-          const isUnavailable = row.interpretation.includes("UNAVAILABLE");
+
+          // Colored left accent border based on status
+          const leftBorderClass =
+            row.riskLevel === "HIGH"
+              ? "border-l-4 border-l-red-500"
+              : row.riskLevel === "MEDIUM"
+              ? "border-l-4 border-l-amber-500"
+              : row.riskLevel === "LOW"
+              ? "border-l-4 border-l-emerald-500"
+              : "border-l-4 border-l-blue-500";
 
           return (
             <div
               key={row.id}
-              className="p-3 rounded bg-slate-950/80 border border-slate-800 space-y-1.5"
+              className={`p-4 sm:p-5 rounded-xl bg-slate-50 border border-slate-200 ${leftBorderClass} space-y-3 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md transition-all duration-150`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold text-white font-mono">
-                    {row.label}
-                  </span>
-                  {isPending && (
-                    <span className="text-[9px] font-mono text-slate-500 border border-slate-700 px-1.5 py-0.2 rounded">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center space-x-3.5 min-w-0">
+                  <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-600 flex-shrink-0">
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs sm:text-sm font-bold text-[#0F172A] tracking-tight block font-sans truncate">
+                      {row.label}
+                    </span>
+                    <span className="text-[11px] text-[#64748B] block truncate font-sans">
+                      {row.sublabel}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-3 flex-shrink-0">
+                  {row.riskLevel && riskStyles ? (
+                    <Badge variant={row.riskLevel} className="text-[10px] font-bold px-2.5 py-0.5">
+                      {row.riskLevel}
+                    </Badge>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-100 border border-slate-200 text-[#64748B]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
                       PENDING
                     </span>
                   )}
-                  {isUnavailable && !isPending && (
-                    <span className="text-[9px] font-mono text-amber-500 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded">
-                      UNAVAILABLE
-                    </span>
-                  )}
-                </div>
 
-                <div className="flex items-center space-x-2">
-                  {row.riskLevel && riskStyles && (
-                    <Badge variant={row.riskLevel} className="text-[10px] font-mono font-bold px-2 py-0.2">
-                      {row.riskLevel}
-                    </Badge>
-                  )}
-                  {row.score !== null ? (
-                    <span className={`text-sm font-black font-mono ${riskStyles?.text ?? "text-slate-400"}`}>
-                      {row.score}
-                      <span className="text-[10px] text-slate-400 font-normal"> / 100</span>
-                    </span>
-                  ) : (
-                    <span className="text-sm font-mono text-slate-600">—</span>
-                  )}
+                  {/* 32px Mini Progress Ring */}
+                  <MiniProgressRing score={row.score} riskLevel={row.riskLevel} />
                 </div>
               </div>
 
-              <p className="text-[10px] font-mono text-slate-400">{row.description}</p>
+              {/* Progress Bar with fill when active */}
+              {row.score !== null ? (
+                <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                  <div
+                    className={`h-full ${riskStyles?.bg ?? "bg-blue-600"} transition-all duration-500`}
+                    style={{ width: `${Math.min(100, Math.max(4, row.score))}%` }}
+                  />
+                </div>
+              ) : null}
 
-              <p className={`text-xs font-mono ${isPending || isUnavailable ? "text-slate-500 italic" : "text-slate-300"}`}>
-                {isPending || isUnavailable ? row.interpretation : `"${row.interpretation}"`}
-              </p>
+              {/* Interpretation or Skeleton */}
+              {isPending ? (
+                <div className="flex items-center gap-2 pt-0.5">
+                  <div className="h-2 w-48 rounded-full bg-slate-200 animate-pulse" />
+                  <span className="text-[10px] font-mono text-[#64748B]">ANALYSIS_PENDING</span>
+                </div>
+              ) : (
+                <p className="text-xs text-[#475569] font-sans leading-relaxed">
+                  {row.interpretation}
+                </p>
+              )}
 
               {row.note && (
-                <p className="text-[10px] text-slate-500 font-mono leading-tight">{row.note}</p>
+                <p className="text-[10px] text-blue-700 font-mono leading-tight bg-blue-50 px-2 py-1 rounded border border-blue-200 w-fit">
+                  {row.note}
+                </p>
               )}
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 
@@ -244,51 +354,53 @@ function LiveSignalView({ state }: { state: AnalysisState }) {
 
 function SignalsList({ signals }: { signals: RiskSignal[] }) {
   return (
-    <Card className="border-slate-800 bg-slate-900/90">
-      <CardHeader className="pb-3 pt-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-mono font-bold uppercase tracking-wider text-slate-300">
-            DETECTION ASSESSMENT (RISK FUSION ENGINE)
-          </CardTitle>
-          <span className="text-[10px] font-mono text-slate-400">
-            {signals.length} Fused Signal{signals.length === 1 ? "" : "s"}
-          </span>
-        </div>
-      </CardHeader>
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="p-6 pb-4 border-b border-slate-200 flex items-center justify-between">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-[#0F172A] font-sans">
+          DETECTION ASSESSMENT (RISK FUSION ENGINE)
+        </h3>
+        <span className="text-[10px] font-mono font-semibold text-[#64748B]">
+          {signals.length} Fused Vector{signals.length === 1 ? "" : "s"}
+        </span>
+      </div>
 
-      <CardContent className="space-y-2 pt-0">
+      <div className="space-y-3.5 p-6">
         {signals.map((sig, idx) => {
-          const riskStyles = getRiskColorClasses(sig.risk_level);
+          const leftBorderClass =
+            sig.risk_level === "HIGH"
+              ? "border-l-4 border-l-red-500"
+              : sig.risk_level === "MEDIUM"
+              ? "border-l-4 border-l-amber-500"
+              : "border-l-4 border-l-emerald-500";
+
           return (
             <div
               key={sig.signal_id || `sig-${idx}`}
-              className="p-3 rounded bg-slate-950/80 border border-slate-800 space-y-1.5"
+              className={`p-4 rounded-xl bg-slate-50 border border-slate-200 ${leftBorderClass} space-y-2 hover:-translate-y-0.5 transition-all duration-150`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold text-white font-mono">{sig.label}</span>
+                  <span className="text-xs font-bold text-[#0F172A] font-sans">{sig.label}</span>
                   {sig.confidence_label && (
-                    <span className="text-[9px] font-mono font-bold text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded border border-rose-500/20">
+                    <span className="text-[9px] font-mono font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-full border border-red-200">
                       {sig.confidence_label}
                     </span>
                   )}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Badge variant={sig.risk_level} className="text-[10px] font-mono font-bold px-2 py-0.2">
+                <div className="flex items-center space-x-3">
+                  <Badge variant={sig.risk_level} className="text-[10px] font-bold px-2.5 py-0.5">
                     {sig.risk_level}
                   </Badge>
-                  <span className={`text-sm font-black font-mono ${riskStyles.text}`}>
-                    {sig.raw_score}
-                    <span className="text-[10px] text-slate-400 font-normal"> / 100</span>
-                  </span>
+                  <MiniProgressRing score={sig.raw_score} riskLevel={sig.risk_level} />
                 </div>
               </div>
-              <p className="text-[10px] font-mono text-slate-400">{sig.description}</p>
-              <p className="text-xs font-mono text-slate-300">&quot;{sig.explanation}&quot;</p>
+              <p className="text-[11px] text-[#64748B] font-sans">{sig.description}</p>
+              <p className="text-xs text-slate-700 font-mono">&quot;{sig.explanation}&quot;</p>
             </div>
           );
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
+

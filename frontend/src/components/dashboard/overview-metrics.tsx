@@ -14,45 +14,45 @@ export function OverviewMetrics({ metrics }: OverviewMetricsProps) {
   const getMetricIcon = (id: string) => {
     switch (id) {
       case "active-calls":
-        return <Radio className="w-3.5 h-3.5 text-emerald-400" />;
+        return <Radio className="w-3.5 h-3.5 text-emerald-600" />;
       case "calls-analyzed":
-        return <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" />;
+        return <CheckCircle2 className="w-3.5 h-3.5 text-slate-500" />;
       case "high-risk-calls":
-        return <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />;
+        return <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />;
       case "open-incidents":
-        return <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />;
+        return <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />;
       default:
         return null;
     }
   };
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {metrics.map((metric) => (
         <Card
           key={metric.id}
           className={cn(
-            "bg-slate-900/80 border-slate-800 transition-colors",
-            metric.status === "danger" && "border-rose-500/30 bg-rose-950/10",
-            metric.status === "warning" && "border-amber-500/30 bg-amber-950/10",
-            metric.status === "active" && "border-emerald-500/30 bg-emerald-950/10"
+            "rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all duration-300 shadow-sm hover:-translate-y-0.5",
+            metric.status === "danger" && "border-rose-200 bg-rose-50/40",
+            metric.status === "warning" && "border-amber-200 bg-amber-50/40",
+            metric.status === "active" && "border-emerald-200 bg-emerald-50/40"
           )}
         >
-          <CardContent className="p-3.5">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-400">
+              <span className="text-[10px] font-mono font-medium uppercase tracking-[0.1em] text-[#64748B]">
                 {metric.label}
               </span>
-              <div className="p-1 rounded bg-slate-800 border border-slate-700/60">
+              <div className="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center">
                 {getMetricIcon(metric.id)}
               </div>
             </div>
 
-            <div className="mt-2 flex items-baseline justify-between">
-              <span className="text-2xl font-extrabold font-mono tracking-tight text-white">
+            <div className="mt-3 flex items-baseline justify-between">
+              <span className="text-2xl font-bold font-mono tracking-tight text-[#0F172A]">
                 {metric.value}
               </span>
-              <span className="text-[10px] font-mono text-slate-400">
+              <span className="text-[10px] font-mono text-[#64748B] bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
                 {metric.subtext}
               </span>
             </div>

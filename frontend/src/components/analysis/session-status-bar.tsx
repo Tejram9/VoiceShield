@@ -4,8 +4,7 @@
  * VoiceShield — Session Status Bar
  *
  * Compact operational status strip displayed inside the live call workspace.
- * Shows: session lifecycle state, session ID, connection status, last pipeline
- * latency. Does not control any state — display only.
+ * Uses SplitSmart high-contrast functional signaling tokens.
  */
 
 import React from "react";
@@ -65,11 +64,11 @@ const COLOR_CLASSES: Record<
   "slate" | "amber" | "emerald" | "rose" | "blue",
   { dot: string; text: string; border: string; bg: string }
 > = {
-  slate:   { dot: "bg-slate-400",   text: "text-slate-400",   border: "border-slate-700",   bg: "bg-slate-800/40" },
-  amber:   { dot: "bg-amber-400 animate-pulse",  text: "text-amber-400",   border: "border-amber-500/30", bg: "bg-amber-500/5"  },
-  emerald: { dot: "bg-emerald-400 animate-pulse", text: "text-emerald-400", border: "border-emerald-500/30", bg: "bg-emerald-500/5" },
-  rose:    { dot: "bg-rose-400",    text: "text-rose-400",    border: "border-rose-500/30",  bg: "bg-rose-500/5"   },
-  blue:    { dot: "bg-blue-400 animate-pulse",   text: "text-blue-400",    border: "border-blue-500/30",  bg: "bg-blue-500/5"   },
+  slate:   { dot: "bg-slate-400 shadow-sm animate-pulse",   text: "text-slate-700", border: "border-slate-200", bg: "bg-white shadow-sm" },
+  amber:   { dot: "bg-amber-500 shadow-sm animate-pulse", text: "text-amber-800", border: "border-amber-200", bg: "bg-amber-50 shadow-sm" },
+  emerald: { dot: "bg-emerald-500 shadow-sm animate-pulse", text: "text-emerald-800", border: "border-emerald-200", bg: "bg-emerald-50 shadow-sm" },
+  rose:    { dot: "bg-red-500 shadow-sm animate-pulse", text: "text-red-800", border: "border-red-200", bg: "bg-red-50 shadow-sm" },
+  blue:    { dot: "bg-blue-500 shadow-sm animate-pulse", text: "text-blue-800", border: "border-blue-200", bg: "bg-blue-50 shadow-sm" },
 };
 
 export function SessionStatusBar({
@@ -93,42 +92,49 @@ export function SessionStatusBar({
   const cls = COLOR_CLASSES[color];
 
   return (
-    <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 rounded border text-[10px] font-mono ${cls.border} ${cls.bg}`}>
+    <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 rounded-xl border text-xs transition-all duration-150 ${cls.border} ${cls.bg}`}>
       {/* Operational State */}
-      <div className="flex items-center gap-1.5">
-        <span className={`w-1.5 h-1.5 rounded-full ${cls.dot}`} />
-        <span className={`font-bold uppercase ${cls.text}`}>{label}</span>
+      <div className="flex items-center gap-2.5">
+        <span className="relative flex h-2.5 w-2.5">
+          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${cls.dot.split(" ")[0]}`} />
+          <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${cls.dot}`} />
+        </span>
+        <span className={`font-bold font-mono tracking-wider text-[11px] uppercase ${cls.text}`}>{label}</span>
       </div>
 
-      {/* Session ID */}
-      {sessionId && (
-        <div className="flex items-center gap-1 text-slate-400">
-          <span className="text-slate-500">SESSION</span>
-          <span className="text-slate-300 font-semibold">{sessionId}</span>
-        </div>
-      )}
+      <div className="flex items-center gap-4 text-xs text-[#64748B]">
+        {/* Session ID */}
+        {sessionId && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[#64748B] text-[10px] font-semibold uppercase tracking-wider">Session:</span>
+            <span className="font-mono text-slate-800 font-semibold">{sessionId}</span>
+          </div>
+        )}
 
-      {/* WebSocket State — only shown if not already reflected in label */}
-      {connectionState !== "CONNECTED" && connectionState !== "DISCONNECTED" && (
-        <div className="flex items-center gap-1 text-slate-400">
-          <span className="text-slate-500">WS</span>
-          <span className="text-slate-300">{connectionState}</span>
-        </div>
-      )}
+        {/* WebSocket State */}
+        {connectionState !== "CONNECTED" && connectionState !== "DISCONNECTED" && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[#64748B] text-[10px] font-semibold uppercase tracking-wider">WS:</span>
+            <span className="text-slate-800 font-mono font-medium">{connectionState}</span>
+          </div>
+        )}
 
-      {/* Last analyzed */}
-      {lastAnalyzedAt && (
-        <div className="text-slate-500">
-          Last: <span className="text-slate-400">{lastAnalyzedAt}</span>
-        </div>
-      )}
+        {/* Pipeline latency */}
+        {pipelineLatencyMs !== null && (
+          <div className="hidden sm:flex items-center gap-1.5">
+            <span className="text-[#64748B] text-[10px] font-semibold uppercase tracking-wider">Latency:</span>
+            <span className="font-mono text-blue-600 font-semibold">{Math.round(pipelineLatencyMs)}ms</span>
+          </div>
+        )}
 
-      {/* Pipeline latency */}
-      {pipelineLatencyMs !== null && (
-        <div className="text-slate-500">
-          Pipeline: <span className="text-slate-400">{Math.round(pipelineLatencyMs)}ms</span>
-        </div>
-      )}
+        {/* Last analyzed */}
+        {lastAnalyzedAt && (
+          <div className="hidden md:flex items-center gap-1.5">
+            <span className="text-[#64748B] text-[10px] font-semibold uppercase tracking-wider">Updated:</span>
+            <span className="font-mono text-[#64748B]">{lastAnalyzedAt}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

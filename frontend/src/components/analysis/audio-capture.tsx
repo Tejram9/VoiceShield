@@ -59,18 +59,18 @@ export function AudioCapture({
           disabled={isRequesting || isStopping || disabled}
           aria-label={isActive ? "Stop microphone capture" : "Start microphone capture"}
           className={[
-            "flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded border transition-colors",
+            "flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-mono font-bold rounded-xl border transition-all cursor-pointer duration-200",
             isActive
-              ? "bg-rose-600 hover:bg-rose-500 border-rose-500/40 text-white"
+              ? "bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 border-rose-500/40 text-white shadow-[0_0_15px_rgba(244,63,94,0.4)] animate-pulse"
               : isRequesting
-              ? "bg-amber-600/50 border-amber-500/30 text-amber-200 cursor-wait"
+              ? "bg-amber-600/40 border-amber-500/30 text-amber-200 cursor-wait"
               : isStopping
-              ? "bg-slate-700 border-slate-600 text-slate-300 cursor-wait"
+              ? "bg-slate-700/60 border-slate-600 text-slate-300 cursor-wait"
               : isError
-              ? "bg-rose-900/60 border-rose-600/30 text-rose-300 cursor-not-allowed"
+              ? "bg-rose-950/60 border-rose-600/30 text-rose-300 cursor-not-allowed"
               : disabled
-              ? "bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed"
-              : "bg-emerald-700 hover:bg-emerald-600 border-emerald-500/30 text-white",
+              ? "bg-slate-800/60 border-slate-700 text-slate-500 cursor-not-allowed"
+              : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-emerald-500/40 text-white shadow-[0_0_15px_rgba(16,185,129,0.3)]",
           ].join(" ")}
         >
           {isActive ? (
