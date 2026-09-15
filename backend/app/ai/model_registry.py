@@ -1,9 +1,16 @@
 import threading
 import time
-import torch
 from typing import Dict, Any, Optional
 from enum import Enum
 from app.core.logging import logger
+
+try:
+    import torch
+    TORCH_AVAILABLE = True
+except Exception as _torch_err:
+    torch = None
+    TORCH_AVAILABLE = False
+    logger.warning(f"PyTorch could not be loaded ({_torch_err}). AI model inference will operate in safe fallback mode.")
 
 class ModelStatus(str, Enum):
     UNINITIALIZED = "UNINITIALIZED"
@@ -34,7 +41,7 @@ class AIModelRegistry:
             return
 
         self._initialized = True
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = "cuda" if (torch is not None and torch.cuda.is_available()) else "cpu"
         
         # Model handles & status dicts
         self.asr_model: Any = None

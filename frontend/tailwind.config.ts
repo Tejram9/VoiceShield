@@ -10,63 +10,79 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "#F8FAFC",
-        foreground: "#0F172A",
-        // Clean Professional Light Palette
-        cyber: {
-          950: "#FFFFFF",
-          900: "#F8FAFC",
-          850: "#F1F5F9",
-          800: "#E2E8F0",
-          700: "#CBD5E1",
-          600: "#94A3B8",
-          500: "#64748B",
-          400: "#475569",
-          300: "#334155",
-          100: "#1E293B",
-          50: "#0F172A",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        // Enterprise SOC Dark Palette
+        soc: {
+          950: "#06090F", // Deepest viewport void
+          900: "#0B0F19", // Base workspace background
+          850: "#0F1624", // Canvas surface
+          800: "#151F32", // Primary panel / card surface
+          750: "#1B273F", // Elevated card / header
+          700: "#22314E", // Borders & subtle dividers
+          600: "#324468", // Interactive borders / hover
+          500: "#4B618D", // Muted metadata
+          400: "#798DB5", // Secondary text
+          300: "#A6B7D4", // Subtle text
+          200: "#D1DBEC", // High-contrast text
+          100: "#EDF2FA", // Pure highlights
+          50: "#F8FAFC",
         },
-        electric: {
-          blue: "#3B82F6",
-          cyan: "#0284C7",
-          teal: "#0D9488",
+        // 4-Tier Risk Colors
+        risk: {
+          low: "#10B981",
+          "low-glow": "rgba(16, 185, 129, 0.2)",
+          medium: "#F59E0B",
+          "medium-glow": "rgba(245, 158, 11, 0.2)",
+          high: "#F97316",
+          "high-glow": "rgba(249, 115, 22, 0.2)",
+          critical: "#EF4444",
+          "critical-glow": "rgba(239, 68, 68, 0.25)",
         },
-        threat: {
-          red: "#EF4444",
-          amber: "#F59E0B",
-          green: "#10B981",
+        // Signal Category Accents
+        signal: {
+          voice: "#38BDF8",     // Acoustic / Vocoder / Audio
+          speaker: "#A855F7",   // Biometric ECAPA-TDNN Match
+          intent: "#F43F5E",    // Conversational Coercion / Urgency
+          context: "#EAB308",   // Carrier / Line / Telephony Context
+          fusion: "#6366F1",    // Mathematical Risk Fusion
+        },
+        primary: {
+          DEFAULT: "#2563EB",
+          foreground: "#FFFFFF",
+          hover: "#1D4ED8",
         },
         card: {
-          DEFAULT: "#FFFFFF",
-          foreground: "#0F172A",
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
         },
         popover: {
-          DEFAULT: "#FFFFFF",
-          foreground: "#0F172A",
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
         muted: {
-          DEFAULT: "#F1F5F9",
-          foreground: "#64748B",
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
         },
         accent: {
-          DEFAULT: "#EFF6FF",
-          foreground: "#1D4ED8",
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
         },
         destructive: {
           DEFAULT: "#EF4444",
-          foreground: "#ffffff",
+          foreground: "#FFFFFF",
         },
-        border: "#E2E8F0",
-        input: "#FFFFFF",
-        ring: "#3B82F6",
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
       },
       borderRadius: {
         sm: "0.375rem",
         DEFAULT: "0.5rem",
-        md: "0.75rem",
-        lg: "1rem",
+        md: "0.625rem",
+        lg: "0.75rem",
         xl: "1rem",
-        "2xl": "1rem",
+        "2xl": "1.25rem",
         full: "9999px",
       },
       fontFamily: {
@@ -74,13 +90,9 @@ const config: Config = {
         mono: ["JetBrains Mono", "monospace"],
       },
       boxShadow: {
-        card: "0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)",
-        glass: "0 2px 8px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)",
-        glowBlue: "0 2px 10px rgba(59, 130, 246, 0.15)",
-        glowCyan: "0 2px 10px rgba(2, 132, 199, 0.15)",
-        glowRed: "0 2px 10px rgba(239, 68, 68, 0.15)",
-        glowGreen: "0 2px 10px rgba(16, 185, 129, 0.15)",
-        glowAmber: "0 2px 10px rgba(245, 158, 11, 0.15)",
+        panel: "0 2px 8px -1px rgba(0, 0, 0, 0.4), 0 1px 3px -1px rgba(0, 0, 0, 0.3)",
+        subtle: "0 1px 2px 0 rgba(0, 0, 0, 0.25)",
+        elevated: "0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 2px 6px -1px rgba(0, 0, 0, 0.3)",
       },
     },
   },
@@ -88,4 +100,3 @@ const config: Config = {
 };
 
 export default config;
-

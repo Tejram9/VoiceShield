@@ -7,23 +7,23 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 export function Badge({ className, variant = "default", children, ...props }: BadgeProps) {
-  let variantClasses = "bg-slate-100 text-[#64748B] border-slate-200";
+  let variantClasses = "bg-soc-800 text-soc-300 border-soc-700";
 
-  if (variant === "LOW" || variant === "MEDIUM" || variant === "HIGH") {
+  if (variant === "LOW" || variant === "MEDIUM" || variant === "HIGH" || variant === "CRITICAL") {
     const riskStyles = getRiskColorClasses(variant);
-    variantClasses = `${riskStyles.badge} border ${riskStyles.glow}`;
+    variantClasses = `${riskStyles.badge} border`;
   } else if (variant === "active") {
-    variantClasses = "bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm animate-pulse";
+    variantClasses = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
   } else if (variant === "outline") {
-    variantClasses = "bg-transparent text-[#64748B] border border-slate-300 hover:border-slate-400";
+    variantClasses = "bg-transparent text-soc-300 border border-soc-700 hover:border-soc-600";
   } else if (variant === "neutral") {
-    variantClasses = "bg-slate-100 text-[#64748B] border border-slate-200";
+    variantClasses = "bg-soc-800 text-soc-300 border border-soc-700";
   }
 
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold tracking-wider uppercase transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-500/40",
+        "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium tracking-wide uppercase transition-colors focus:outline-none focus:ring-1 focus:ring-blue-500/40",
         variantClasses,
         className
       )}

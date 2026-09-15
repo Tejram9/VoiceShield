@@ -1,4 +1,7 @@
-import torch
+try:
+    import torch
+except Exception:
+    torch = None
 import asyncio
 import numpy as np
 from typing import Optional, Dict, Any

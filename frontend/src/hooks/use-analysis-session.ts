@@ -168,9 +168,9 @@ export function useAnalysisSession(initialSessionId?: string): UseAnalysisSessio
         // Fallback for standalone frontend demonstration mode when backend is offline
         const fallbackSession: AnalysisSession = {
           session_id: customSessionId || initialSessionId || "VS-2026-000241",
-          caller_name: "Alex Turner",
-          caller_role: "Executive Director",
-          caller_number: "+1 (555) 234-8901",
+          caller_name: "Rahul Sharma",
+          caller_role: "Chief Financial Officer",
+          caller_number: "+91 98201 44521",
           duration_seconds: 222,
           verification_state: "NOT VERIFIED",
           status: "LIVE ANALYSIS",

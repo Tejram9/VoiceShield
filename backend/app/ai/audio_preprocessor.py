@@ -3,9 +3,13 @@ import io
 import wave
 import base64
 import numpy as np
-import torch
 from typing import Tuple, Union, Optional
 from app.schemas.audio import AudioSegment, AudioFormat
+
+try:
+    import torch
+except Exception:
+    torch = None
 
 CANONICAL_SAMPLE_RATE = 16000
 CANONICAL_CHANNELS = 1
@@ -152,10 +156,12 @@ def preprocess_audio_segment(
 
     return window_audio_samples(speech_array, duration_sec=target_duration_sec, sample_rate=sample_rate)
 
-def to_torch_tensor(speech_array: np.ndarray, device: str = "cpu") -> torch.Tensor:
+def to_torch_tensor(speech_array: np.ndarray, device: str = "cpu"):
     """
     Converts 1D numpy array to a PyTorch FloatTensor on the target device.
     """
+    if torch is None:
+        raise RuntimeError("PyTorch is not available in current environment.")
     tensor = torch.from_numpy(speech_array).float()
     if device != "cpu" and torch.cuda.is_available():
         tensor = tensor.to(device)

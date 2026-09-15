@@ -64,11 +64,11 @@ const COLOR_CLASSES: Record<
   "slate" | "amber" | "emerald" | "rose" | "blue",
   { dot: string; text: string; border: string; bg: string }
 > = {
-  slate:   { dot: "bg-slate-400 shadow-sm animate-pulse",   text: "text-slate-700", border: "border-slate-200", bg: "bg-white shadow-sm" },
-  amber:   { dot: "bg-amber-500 shadow-sm animate-pulse", text: "text-amber-800", border: "border-amber-200", bg: "bg-amber-50 shadow-sm" },
-  emerald: { dot: "bg-emerald-500 shadow-sm animate-pulse", text: "text-emerald-800", border: "border-emerald-200", bg: "bg-emerald-50 shadow-sm" },
-  rose:    { dot: "bg-red-500 shadow-sm animate-pulse", text: "text-red-800", border: "border-red-200", bg: "bg-red-50 shadow-sm" },
-  blue:    { dot: "bg-blue-500 shadow-sm animate-pulse", text: "text-blue-800", border: "border-blue-200", bg: "bg-blue-50 shadow-sm" },
+  slate:   { dot: "bg-soc-400",   text: "text-soc-300", border: "border-soc-700/80", bg: "soc-panel" },
+  amber:   { dot: "bg-amber-400", text: "text-amber-300", border: "border-amber-500/40", bg: "soc-panel bg-amber-950/15" },
+  emerald: { dot: "bg-emerald-400", text: "text-emerald-300", border: "border-emerald-500/40", bg: "soc-panel bg-emerald-950/15" },
+  rose:    { dot: "bg-rose-400", text: "text-rose-300", border: "border-rose-500/40", bg: "soc-panel bg-rose-950/15" },
+  blue:    { dot: "bg-blue-400", text: "text-blue-300", border: "border-blue-500/40", bg: "soc-panel bg-blue-950/15" },
 };
 
 export function SessionStatusBar({
@@ -92,46 +92,45 @@ export function SessionStatusBar({
   const cls = COLOR_CLASSES[color];
 
   return (
-    <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 rounded-xl border text-xs transition-all duration-150 ${cls.border} ${cls.bg}`}>
+    <div className={`flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 rounded-lg border text-xs transition-all duration-150 ${cls.border} ${cls.bg}`}>
       {/* Operational State */}
       <div className="flex items-center gap-2.5">
-        <span className="relative flex h-2.5 w-2.5">
-          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${cls.dot.split(" ")[0]}`} />
-          <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${cls.dot}`} />
+        <span className="relative flex h-2 w-2">
+          <span className={`relative inline-flex rounded-full h-2 w-2 ${cls.dot}`} />
         </span>
         <span className={`font-bold font-mono tracking-wider text-[11px] uppercase ${cls.text}`}>{label}</span>
       </div>
 
-      <div className="flex items-center gap-4 text-xs text-[#64748B]">
+      <div className="flex items-center gap-4 text-xs text-soc-400">
         {/* Session ID */}
         {sessionId && (
           <div className="flex items-center gap-1.5">
-            <span className="text-[#64748B] text-[10px] font-semibold uppercase tracking-wider">Session:</span>
-            <span className="font-mono text-slate-800 font-semibold">{sessionId}</span>
+            <span className="text-soc-500 text-[10px] font-semibold uppercase tracking-wider">Session:</span>
+            <span className="font-mono text-soc-200 font-semibold">{sessionId}</span>
           </div>
         )}
 
         {/* WebSocket State */}
         {connectionState !== "CONNECTED" && connectionState !== "DISCONNECTED" && (
           <div className="flex items-center gap-1.5">
-            <span className="text-[#64748B] text-[10px] font-semibold uppercase tracking-wider">WS:</span>
-            <span className="text-slate-800 font-mono font-medium">{connectionState}</span>
+            <span className="text-soc-500 text-[10px] font-semibold uppercase tracking-wider">WS:</span>
+            <span className="text-soc-200 font-mono font-medium">{connectionState}</span>
           </div>
         )}
 
         {/* Pipeline latency */}
         {pipelineLatencyMs !== null && (
           <div className="hidden sm:flex items-center gap-1.5">
-            <span className="text-[#64748B] text-[10px] font-semibold uppercase tracking-wider">Latency:</span>
-            <span className="font-mono text-blue-600 font-semibold">{Math.round(pipelineLatencyMs)}ms</span>
+            <span className="text-soc-500 text-[10px] font-semibold uppercase tracking-wider">Latency:</span>
+            <span className="font-mono text-blue-400 font-semibold">{Math.round(pipelineLatencyMs)}ms</span>
           </div>
         )}
 
         {/* Last analyzed */}
         {lastAnalyzedAt && (
           <div className="hidden md:flex items-center gap-1.5">
-            <span className="text-[#64748B] text-[10px] font-semibold uppercase tracking-wider">Updated:</span>
-            <span className="font-mono text-[#64748B]">{lastAnalyzedAt}</span>
+            <span className="text-soc-500 text-[10px] font-semibold uppercase tracking-wider">Updated:</span>
+            <span className="font-mono text-soc-400">{lastAnalyzedAt}</span>
           </div>
         )}
       </div>
