@@ -1,4 +1,4 @@
-export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type RiskLevel = "LOW" | "MEDIUM" | "ELEVATED" | "HIGH" | "CRITICAL";
 
 export interface OverviewMetric {
   id: string;
