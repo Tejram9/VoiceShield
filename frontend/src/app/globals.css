@@ -4,19 +4,87 @@
 
 @layer base {
   :root {
-    --background: #ffffff;
-    --foreground: #0f172a;
+    --canvas: #090d16;
+    --surface-base: #0e1420;
+    --surface-1: #131b2b;
+    --surface-2: #182235;
+    --surface-elevated: #1e2a40;
+
+    --border-subtle: #1c2536;
+    --border-default: #263347;
+    --border-strong: #37465e;
+    --border-focus: #3b82f6;
+
+    --content-primary: #f1f5f9;
+    --content-secondary: #94a3b8;
+    --content-muted: #64748b;
+    --content-subtle: #475569;
   }
 
-  * {
+  *,
+  *::before,
+  *::after {
     box-sizing: border-box;
   }
 
+  html {
+    color-scheme: dark;
+    background-color: var(--canvas);
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
-    background-color: var(--background);
-    color: var(--foreground);
     margin: 0;
     padding: 0;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background-color: var(--canvas);
+    color: var(--content-primary);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.375rem;
+  }
+
+  /* Accessible focus indicators */
+  :focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+  }
+
+  /* Reduced motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Clean, disciplined scrollbar without decorative neon */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--canvas);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--border-strong);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
   }
 }
