@@ -3,24 +3,6 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --canvas: #090d16;
-    --surface-base: #0e1420;
-    --surface-1: #131b2b;
-    --surface-2: #182235;
-    --surface-elevated: #1e2a40;
-
-    --border-subtle: #1c2536;
-    --border-default: #263347;
-    --border-strong: #37465e;
-    --border-focus: #3b82f6;
-
-    --content-primary: #f1f5f9;
-    --content-secondary: #94a3b8;
-    --content-muted: #64748b;
-    --content-subtle: #475569;
-  }
-
   *,
   *::before,
   *::after {
@@ -28,8 +10,6 @@
   }
 
   html {
-    color-scheme: dark;
-    background-color: var(--canvas);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -38,53 +18,29 @@
   body {
     margin: 0;
     padding: 0;
-    background-color: var(--canvas);
-    color: var(--content-primary);
+    background-color: #f8fafc;
+    color: #0f172a;
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-size: 0.875rem;
-    line-height: 1.375rem;
+    line-height: 1.25rem;
   }
 
-  /* Accessible focus indicators */
-  :focus-visible {
-    outline: 2px solid var(--border-focus);
-    outline-offset: 2px;
-  }
-
-  /* Reduced motion support */
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
-  }
-
-  /* Clean, disciplined scrollbar without decorative neon */
+  /* Custom scrollbar matching calm, modern design */
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   ::-webkit-scrollbar-track {
-    background: var(--canvas);
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--border-default);
-    border-radius: 3px;
+    background: #cbd5e1;
+    border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--border-strong);
-  }
-}
-
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+    background: #94a3b8;
   }
 }
